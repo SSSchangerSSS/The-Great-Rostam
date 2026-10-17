@@ -2,6 +2,10 @@
 // Both bosses support God-of-War-style finishers: when HP crosses the
 // threshold they STAGGER (invulnerable), offering the player a QTE finisher.
 // A failed QTE ENRAGES them: partial heal, red aura, faster & meaner.
+//
+// v2: every hit now READS — jackals flinch and skid (with friction, no skating),
+// the lion's head snaps on light hits (recoil overlay, armor preserved),
+// and all enemies white-flash on impact like a Shank/Flash hit.
 import { clamp, rectsOverlap } from '../core/utils.js';
 import { Animator } from '../gfx/rig.js';
 import { LION_RIG, LION_CLIPS, JACKAL_RIG, JACKAL_CLIPS } from '../content/rigs.js';
@@ -32,7 +36,7 @@ function drawStars(ctx, x, y, t) {
 }
 
 // ============================================================
-// JACKAL — chases and lunges (trash mob)
+// JACKAL — chases and lunges (trash mob), flinches on every hit
 // ============================================================
 export class Jackal {
   constructor(game, x, y) {
@@ -46,7 +50,9 @@ export class Jackal {
     this.dead = false; this.deadT = 0;
     this.speed = 150;
     this.lungeCd = 0;
-    this.state = 'run';
+    this.state = 'run';                 // run|lunge|stun
+    this.stunT = 0;
+    this.flashT = 0;
     this.aggro = 480;                   // don't chase across the whole map
     this.fleeing = false; this.fleeT = 0;
     this.patrolT = 0; this.patrolDir = 1;
@@ -66,13 +72,21 @@ export class Jackal {
   hurt(dmg, dir, game) {
     if (this.dead) return false;
     this.hp -= dmg;
-    this.vx = dir * 320;
-    game.particles.burst(this.x, this.y - 16, 8, { speed: 110, life: 0.4, size: 3, color: ['#8a6d4a', '#5e4a30'], grav: 500 });
+    this.flashT = 0.12;
+    // ★ knockback WITH friction (skid, then stop) — never a constant slide
+    this.stunT = dmg >= 4 ? 0.5 : 0.28;
+    this.state = 'stun';
+    this.vx = dir * (dmg >= 4 ? 420 : 260);
+    if (dmg >= 4) this.vy = -240;       // heavy hits launch
+    game.particles.burst(this.x, this.y - 16, 7, { speed: 110, life: 0.4, size: 3, color: ['#8a6d4a', '#5e4a30'], grav: 500 });
     if (this.hp <= 0) {
       this.dead = true;
       this.state = 'die';
+      this.stunT = 0;
       this.rig.play('die', { restart: true });
       game.audio.play('hit');
+      // death poof — the jackal bursts into sand
+      game.particles.burst(this.x, this.y - 14, 12, { speed: 130, life: 0.55, size: 3.4, color: ['#8a6d4a', '#c9b890', '#5e4a30'], grav: 260 });
     }
     return true;
   }
@@ -83,6 +97,7 @@ export class Jackal {
       this.rig.update(dt);
       return;
     }
+    if (this.flashT > 0) this.flashT -= dt;
     this.lungeCd -= dt;
     const dir = Math.sign(player.x - this.x) || -1;
     const dist = Math.abs(player.x - this.x);
@@ -106,7 +121,13 @@ export class Jackal {
       return;
     }
 
-    if (this.state === 'lunge') {
+    if (this.state === 'stun') {
+      // ★ hit-stun: skid to a halt, then back to the hunt
+      this.stunT -= dt;
+      this.vx *= Math.pow(0.0006, dt);
+      this.rig.play('flinch');
+      if (this.stunT <= 0) this.state = 'run';
+    } else if (this.state === 'lunge') {
       if (this.rig.finished) { this.state = 'run'; }
       // contact damage
       if (rectsOverlap(this.hurtbox(), player.hurtbox())) {
@@ -148,7 +169,7 @@ export class Jackal {
   draw(ctx, cam) {
     const pose = this.rig.pose();
     const joints = JACKAL_RIG.compute(pose, { x: this.x, y: this.y - 16, flip: this.facing, scale: 1 });
-    paintJackal(ctx, joints, this.dead ? Math.max(0, 1 - this.deadT) : 1);
+    paintJackal(ctx, joints, this.dead ? Math.max(0, 1 - this.deadT) : 1, { flash: Math.max(0, this.flashT || 0) / 0.12 });
   }
 }
 
@@ -194,6 +215,7 @@ export class WhiteJackal {
     this.hp -= dmg;
     this.hurtFlash = 0.16;
     this.vx += dir * 120;
+    game.particles.sparkBurst(this.x - dir * 10, this.y - 28, dir);
     game.particles.burst(this.x, this.y - 24, 9, { speed: 130, life: 0.45, size: 3, color: ['#d9d2c4', '#a03028', '#5e4a30'], grav: 500 });
     game.audio.play('hit');
     game.hud.bossSync(this);
@@ -206,8 +228,10 @@ export class WhiteJackal {
   }
 
   enterStagger(game) {
+    if (game.qte.state !== 'idle') return;   // finisher busy — fight on, try next hit
     this.staggered = true;
     this.vx = 0;
+    this.vy = 0;
     this.state = 'stagger';
     this.rig.play('stagger', { restart: true });
     // the pack abandons its fallen alpha — scatters in terror
@@ -230,9 +254,9 @@ export class WhiteJackal {
   }
 
   takeFinisherHit(game, perfect) {
-    // each successful QTE prompt = a heavy unanswered blow
     this.hurtFlash = 0.22;
     game.camera.shake(perfect ? 9 : 6, 0.3);
+    game.particles.sparkBurst(this.x, this.y - 30, perfect ? game.player.facing : -game.player.facing);
     game.particles.burst(this.x, this.y - 30, perfect ? 16 : 10, {
       speed: 180, life: 0.5, size: 3.6, color: ['#d9d2c4', '#a03028', '#ffd700'], grav: 550,
     });
@@ -287,7 +311,14 @@ export class WhiteJackal {
       }
     }
 
-    if (this.state === 'stagger') { this.rig.update(dt); return; }
+    if (this.state === 'stagger') {
+      // settle to the ground even if staggered mid-air (no floating bosses)
+      this.vy += GRAV * dt;
+      this.y += this.vy * dt;
+      if (this.y >= world.groundY) { this.y = world.groundY; this.vy = 0; }
+      this.rig.update(dt);
+      return;
+    }
 
     const dir = Math.sign(player.x - this.x) || -1;
     const dist = Math.abs(player.x - this.x);
@@ -328,7 +359,7 @@ export class WhiteJackal {
         if (!this._howled && this.rig.progress > 0.4) {
           this._howled = true;
           // summon a minion from the dunes (cap 2 alive)
-          const alive = this.game.enemies.filter(e => !e.dead && e instanceof Jackal).length;
+          const alive = this.game.enemies.filter(e => !e.dead && e.constructor === Jackal).length;
           if (alive < 2) {
             const sx = clamp(this.x + (player.x > this.x ? -320 : 320), this.arena.x1 + 40, this.arena.x2 - 40);
             const j = new Jackal(this.game, sx, this.y);
@@ -363,7 +394,7 @@ export class WhiteJackal {
     ctx.translate(this.x, this.y);          // scale about the feet
     ctx.scale(1.5, 1.5);
     ctx.translate(-this.x, -this.y);
-    paintJackal(ctx, joints, alpha, { alpha: true, enraged: this.enraged });
+    paintJackal(ctx, joints, alpha, { alpha: true, enraged: this.enraged, flash: Math.max(0, this.hurtFlash || 0) / 0.16 });
     ctx.restore();
     if (this.staggered && !this.dead) drawStars(ctx, this.x, this.y - this.h - 18, this.game.states.play.world.time);
   }
@@ -373,6 +404,7 @@ export class WhiteJackal {
 // LION — BOSS «شیرِ مازندران»
 // Phases: prowl → crouch → pounce → swipe, roar at 50%.
 // Finisher: 3-prompt QTE at ~27% HP. Enrage on failed QTE.
+// v2: light hits snap his head (recoil overlay) without breaking armor feel.
 // ============================================================
 export class Lion {
   constructor(game, x, y, arena) {
@@ -389,6 +421,7 @@ export class Lion {
     this.state = 'prowl';
     this.stateT = 0;
     this.hurtFlash = 0;
+    this.recoil = 0;                    // additive neck-flinch (overlay, no state break)
     this.enraged = false;
     this.staggered = false;
     this.finisherPrompts = 3;
@@ -410,6 +443,8 @@ export class Lion {
     if (this.state === 'pounce') return false; // airborne — armored
     this.hp -= dmg;
     this.hurtFlash = 0.18;
+    this.recoil = Math.min(0.5, this.recoil + 0.16 + dmg * 0.05);
+    game.particles.sparkBurst(this.x + dir * -24, this.y - 44, dir);
     game.particles.burst(this.x + dir * -20, this.y - 40, 12, { speed: 150, life: 0.5, size: 3.4, color: ['#b03030', '#d8734a', '#5e3a14'], grav: 500 });
     if (this.hp <= this.maxHp / 2 && !this.roaredOnce) {
       this.roaredOnce = true;
@@ -433,8 +468,10 @@ export class Lion {
   }
 
   enterStagger(game) {
+    if (game.qte.state !== 'idle') return;   // finisher busy — fight on, try next hit
     this.staggered = true;
     this.vx = 0;
+    this.vy = 0;
     this.state = 'stagger';
     this.rig.play('stagger', { restart: true });
     game.dialogue.forceClose();
@@ -454,7 +491,9 @@ export class Lion {
 
   takeFinisherHit(game, perfect) {
     this.hurtFlash = 0.24;
+    this.recoil = Math.min(0.6, this.recoil + (perfect ? 0.45 : 0.3));
     game.camera.shake(perfect ? 10 : 7, 0.32);
+    game.particles.sparkBurst(this.x, this.y - 44, game.player.facing);
     game.particles.burst(this.x, this.y - 44, perfect ? 18 : 12, {
       speed: 190, life: 0.55, size: 4, color: ['#b03030', '#d8734a', '#ffd700'], grav: 550,
     });
@@ -485,6 +524,7 @@ export class Lion {
     if (!this.active) return;
     this.stateT += dt;
     if (this.hurtFlash > 0) this.hurtFlash -= dt;
+    if (this.recoil > 0) this.recoil = Math.max(0, this.recoil - dt * 1.6);
 
     if (this.dead) {
       this.rig.update(dt);
@@ -505,7 +545,14 @@ export class Lion {
       }
     }
 
-    if (this.state === 'stagger') { this.rig.update(dt); return; }
+    if (this.state === 'stagger') {
+      // settle to the ground even if staggered mid-air (no floating bosses)
+      this.vy += GRAV * dt;
+      this.y += this.vy * dt;
+      if (this.y >= world.groundY) { this.y = world.groundY; this.vy = 0; }
+      this.rig.update(dt);
+      return;
+    }
 
     const dir = Math.sign(player.x - this.x) || -1;
     const dist = Math.abs(player.x - this.x);
@@ -542,7 +589,7 @@ export class Lion {
       }
       case 'swipe': {
         this.vx = 0;
-        const fireAt = 0.45;
+        const fireAt = 0.58;
         if (!this._swiped && this.rig.progress >= fireAt) {
           this._swiped = true;
           const box = { x: this.x + (this.facing === 1 ? 10 : -95), y: this.y - 70, w: 85, h: 70 };
@@ -587,8 +634,15 @@ export class Lion {
 
   draw(ctx, cam) {
     const pose = this.rig.pose();
+    // recoil overlay — head/neck snap toward the incoming blow
+    if (this.recoil > 0) {
+      pose.neck = (pose.neck || 0) + this.recoil * 0.55;
+      pose.head = (pose.head || 0) + this.recoil * 0.3;
+      pose.jaw = (pose.jaw || 0) + this.recoil * 0.25;
+    }
     const joints = LION_RIG.compute(pose, { x: this.x, y: this.y - 34, flip: this.facing, scale: 1 });
-    paintLion(ctx, joints, this.dead ? Math.max(0, 1 - this.deadT * 0.35) : 1, this.hurtFlash > 0 ? 1 : 0, this.enraged);
+    paintLion(ctx, joints, this.dead ? Math.max(0, 1 - this.deadT * 0.35) : 1,
+      Math.max(0, this.hurtFlash || 0) / 0.18, this.enraged);
     if (this.staggered && !this.dead) drawStars(ctx, this.x, this.y - this.h - 10, this.game.states.play.world.time);
   }
 }

@@ -25,6 +25,7 @@ window.addEventListener('DOMContentLoaded', () => {
       const b = (p.miniBoss && p.miniBoss.active && !p.miniBoss.dead) ? p.miniBoss
         : (p.boss.active && !p.boss.dead ? p.boss : null);
       if (!b) return;
+      if (b.roaredOnce === false) b.roaredOnce = true;   // skip the 50%-roar branch
       b.hp = b.finisherThreshold + 1;
       b.hurt(1, 1, game);
     },

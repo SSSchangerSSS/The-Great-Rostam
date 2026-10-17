@@ -29,6 +29,7 @@
         <div id="boss-name">شیرِ خوانِ اوّل — The Lion</div>
         <div id="boss-track"><div id="boss-fill"></div></div>
       </div>
+      <div id="combo"><b id="combo-n">0</b><span>ضربه · HITS</span></div>
       <div id="trial-label"></div>
     </div>
 
@@ -52,6 +53,7 @@
       <div class="tc-right">
         <button class="tbtn" id="tb-bow" aria-label="bow">🏹</button>
         <button class="tbtn" id="tb-mount" aria-label="rakhsh">🐎</button>
+        <button class="tbtn" id="tb-roll" aria-label="roll">🌀</button>
         <button class="tbtn big" id="tb-attack" aria-label="attack">⚔</button>
         <button class="tbtn big" id="tb-jump" aria-label="jump">⤒</button>
       </div>
@@ -94,6 +96,9 @@
     <!-- ===== Screen flash (finisher slam) ===== -->
     <div id="flash" class="hidden"></div>
 
+    <!-- ===== Hurt vignette (red edge pulse on damage) ===== -->
+    <div id="hurt-vignette"></div>
+
     <!-- ===== Rotate hint toast ===== -->
     <div id="rotate-toast" class="hidden">📱 برای تجربهٔ بهتر، گوشی را بچرخان — rotate for a wider view</div>
 
@@ -106,7 +111,7 @@
       <div id="title-trial">Trial I — The Lion · خوانِ اوّل: شیر</div>
       <div id="title-start" class="blink">— PRESS ENTER / اینتر —</div>
       <div id="title-controls">
-        <span>← → Move</span><span>Z Jump</span><span>X Attack</span><span>C Bow</span><span>Shift Rakhsh</span><span>F Finisher</span><span>Esc Pause</span>
+        <span>← → Move</span><span>Z Jump</span><span>X Attack</span><span>C Bow</span><span>V Roll</span><span>Shift Rakhsh</span><span>F Finisher</span><span>Esc Pause</span>
       </div>
     </div>
 

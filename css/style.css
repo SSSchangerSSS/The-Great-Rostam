@@ -161,12 +161,13 @@ body.touch #touch-ui.on { display: block; }
   position: absolute;
   right: calc(14px + var(--sar));
   bottom: calc(20px + var(--sab));
-  width: 176px; height: 152px;
+  width: 184px; height: 224px;
 }
-#tb-jump  { position: absolute; right: 0;    bottom: 0; }
-#tb-attack{ position: absolute; right: 96px; bottom: 14px; }
-#tb-bow   { position: absolute; right: 8px;  bottom: 96px; }
-#tb-mount { position: absolute; right: 104px;bottom: 102px; }
+#tb-attack{ position: absolute; right: 0;    bottom: 0; }
+#tb-jump  { position: absolute; right: 98px; bottom: 10px; }
+#tb-roll  { position: absolute; right: 8px;  bottom: 96px; }
+#tb-bow   { position: absolute; right: 104px;bottom: 102px; }
+#tb-mount { position: absolute; right: 52px; bottom: 184px; }
 
 #tc-sys {
   position: absolute;
@@ -356,6 +357,42 @@ body.touch.on-play #resources { right: calc(12px + var(--sar)); top: calc(56px +
 }
 @keyframes flashOut { from { opacity: 1; } to { opacity: 0; } }
 
+/* ======================= Hurt vignette =========================== */
+#hurt-vignette {
+  position: absolute; inset: 0;
+  z-index: 43;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(ellipse at center, rgba(176,48,48,0) 52%, rgba(150,20,20,0.55) 100%);
+}
+#hurt-vignette.hit { animation: hurtPulse 0.42s ease-out; }
+@keyframes hurtPulse { 0% { opacity: 0; } 16% { opacity: 1; } 100% { opacity: 0; } }
+
+/* ======================== Combo counter ========================== */
+#combo {
+  position: absolute; left: 50%; top: calc(84px + var(--sat));
+  transform: translateX(-50%);
+  z-index: 20; pointer-events: none;
+  text-align: center;
+  opacity: 0;
+}
+#combo.show { animation: comboPop 1.5s ease-out forwards; }
+#combo b {
+  display: block;
+  font-size: clamp(30px, 7vw, 46px); font-weight: 900;
+  color: var(--gold-bright);
+  text-shadow: 0 0 22px rgba(255,215,0,0.55), 0 3px 10px #000;
+  line-height: 1;
+}
+#combo span { font-size: 12px; letter-spacing: 3px; color: var(--ink); text-shadow: 0 2px 6px #000; }
+@keyframes comboPop {
+  0% { opacity: 0; transform: translateX(-50%) scale(0.5); }
+  10% { opacity: 1; transform: translateX(-50%) scale(1.15); }
+  18% { transform: translateX(-50%) scale(1); }
+  72% { opacity: 1; }
+  100% { opacity: 0; transform: translateX(-50%) scale(1); }
+}
+
 /* ======================= Rotate toast ============================ */
 #rotate-toast {
   position: absolute; left: 50%; bottom: calc(84px + var(--sab));
@@ -536,11 +573,12 @@ body:not(.touch) #title-controls .touch-only { display: none; }
 @media (max-height: 480px) {
   .tbtn { width: 52px; height: 52px; font-size: 20px; }
   .tbtn.big { width: 64px; height: 64px; font-size: 26px; }
-  .tc-right { width: 150px; height: 128px; }
-  #tb-attack { right: 82px; bottom: 10px; }
-  #tb-jump { right: 0; bottom: 0; }
-  #tb-bow { right: 6px; bottom: 82px; }
-  #tb-mount { right: 88px; bottom: 86px; }
+  .tc-right { width: 168px; height: 196px; }
+  #tb-attack { right: 0; bottom: 0; }
+  #tb-jump { right: 86px; bottom: 8px; }
+  #tb-roll { right: 6px; bottom: 84px; }
+  #tb-bow { right: 92px; bottom: 90px; }
+  #tb-mount { right: 46px; bottom: 158px; }
   #hearts { gap: 4px; }
   .heart { width: 19px; height: 17px; }
   #boss-bar { width: min(420px, 52vw); }

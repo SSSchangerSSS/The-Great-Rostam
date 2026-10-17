@@ -39,16 +39,17 @@
 
 ## ⚔️ What's inside | چه چیزی ساخته شده
 
-- 🦴 **Procedural skeletal rig system** — Rostam, Rakhsh, the White Jackal and the Lion are animated bone-by-bone (keyframed clips: idle / run / jump / 3-hit combo / bow / howl / pounce / roar / stagger / death)
-- 🎯 **Finisher QTE system (God of War style)** — bring a mini-boss or boss below its HP threshold and it **staggers**: approach and hit **F** (or the FINISH button) to enter a slow-motion ring-timed button sequence. Succeed → a cinematic leap-and-slam kill. Miss twice → the beast **ENRAGES** (heals, red aura, faster & meaner)
+- 🦴 **Procedural skeletal rig system v2 (“Flash-school” animation)** — every character is animated bone-by-bone with per-key easing: anticipation coils → whip strikes → impact holds → follow-through settles, plus root-motion weight (_ox/_oy), squash & stretch, and secondary motion (beard & tiger-pelt sway with velocity)
+- ⚔️ **Shank-inspired combat** — lunging 3-hit mace combo, dodge **roll with i-frames** (afterimage trail), air attack with hit-bounce, enemy hitstun & knockback friction, Shank-style impact sparks, mace smear trails, hitstop, screen shake and a chain hit-counter
+- 🎯 **Finisher QTE system (God of War style)** — bring a mini-boss or boss below its HP threshold and it **staggers**: approach and hit **F** (or the FINISH button) to enter a slow-motion ring-timed button sequence. Succeed → a cinematic leap-and-slam kill with afterimages. Miss twice → the beast **ENRAGES** (heals, red aura, faster & meaner)
 - 🐺 **Mini-boss + Boss** — the **White Jackal, Pack Alpha** (summons its pack, triple-lunge chains) and the **Lion of Trial I** (pounce, claw combos, half-health roar shockwave) — each with its own finisher length & arena
-- 📱 **Mobile-first design** — full-viewport adaptive canvas (any aspect ratio, DPR-aware), on-screen thumb controls (move / jump / mace / bow / Rakhsh), tap-to-advance dialogue, fullscreen button, haptic feedback, one-time rotate hint
+- 📱 **Mobile-first design** — full-viewport adaptive canvas (any aspect ratio, DPR-aware), on-screen thumb controls (move / jump / mace / bow / roll / Rakhsh), coyote-time + jump buffering for forgiving touch play, tap-to-advance dialogue, fullscreen button, haptic feedback, one-time rotate hint
 - 🏜 **Multi-layer parallax desert** — procedural mountains, dunes, drifting clouds, circling vultures, Achaemenid columns, animated braziers — all drawn in code
 - 💬 **Bilingual dialogue system (FA/EN)** — typewriter effect, procedural pixel portraits, epic script in the spirit of the Shahnameh
 - 🐎 **Rakhsh mount mechanic** — call the black stallion for a speed & trample boost
 - 🏹 **Two weapon styles** — 3-hit mace combo with hitstop & screen shake, chargeable heroic bow
 - 🔊 **Procedural WebAudio SFX** — every sound synthesized in code, no audio files
-- 📊 **HTML/CSS UI layer** — hearts, arrow counter, Rakhsh cooldown radial, boss bar, QTE rings & feedback, title/pause/victory/defeat screens
+- 📊 **HTML/CSS UI layer** — hearts, arrow counter, Rakhsh cooldown radial, boss bar, chain counter, hurt vignette, QTE rings & feedback, title/pause/victory/defeat screens
 
 ## 🎯 The Finisher — ضربهٔ نهایی
 
@@ -72,12 +73,13 @@ When a **mini-boss or boss** is worn down to its threshold, it drops to its knee
 | `Z` / `Space` | Jump · advance dialogue / پرش · رد کردن دیالوگ |
 | `X` | Mace combo (chain 3 hits) / ضربه‌ی سه‌تایی گرز |
 | `C` (hold) | Charge & release arrow / نشانه‌گیری و شلیک تیر |
-| `Shift` | Call Rakhsh / فراخوان رخش |
+| `V` | **Dodge roll** (i-frames) / **غلتک** (مصونیت لحظه‌ای) |
+| `Shift` / `E` | Call Rakhsh / فراخوان رخش |
 | `F` | **Finisher** (on a staggered boss) / **ضربهٔ نهایی** |
 | `Esc` | Pause / توقف |
 | `M` | Mute / بی‌صدا |
 
-**Mobile / موبایل** — on-screen buttons: `◀ ▶` move · `⤒` jump · `⚔` mace · `🏹` bow · `🐎` Rakhsh · `⏸ 🔊 ⛶` system — plus the golden **FINISH** button and QTE pads when a boss kneels.
+**Mobile / موبایل** — on-screen buttons: `◀ ▶` move · `⤒` jump · `⚔` mace · `🏹` bow · `🌀` roll · `🐎` Rakhsh · `⏸ 🔊 ⛶` system — plus the golden **FINISH** button and QTE pads when a boss kneels.
 
 ## 🚀 Run it | اجرا
 

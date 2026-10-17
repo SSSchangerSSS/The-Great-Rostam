@@ -145,9 +145,9 @@ export class Game {
     play.paused = !play.paused;
     if (play.paused) {
       this.menus.show('pause');
-      // a staggered boss gets back up while the game is paused
-      const b = this.qte.cancelOffer();
-      if (b && b.recoverFromStagger) b.recoverFromStagger();
+      // pausing mid-finisher backs the boss out of its stagger cleanly
+      const b = this.qte.abort();
+      if (b && b.recoverFromStagger && !b.dead) b.recoverFromStagger();
     } else {
       this.menus.hideAll();
     }
@@ -190,12 +190,17 @@ export class Game {
   onPlayerDead() {
     const play = this.states.play;
     play.ending = true;
-    this.qte.cancelOffer();
+    // hard-stop any finisher offer/QTE and let the staggered boss back up
+    const ob = this.qte.abort();
+    if (ob && ob.recoverFromStagger && !ob.dead) ob.recoverFromStagger();
+    // dramatic death slow-mo, then the defeat screen
+    this.timescale = 0.4;
+    this._after(0.9, () => { this.timescale = 1; });
     // force-close any open dialogue so the defeat screen stands alone
     this.dialogue.active = false;
     this.dialogue.done = null;
     document.getElementById('dialogue').classList.add('hidden');
-    this._after(1.5, () => {
+    this._after(1.7, () => {
       this.setState('results', {
         win: false,
         world: play.world,
@@ -229,6 +234,17 @@ export class Game {
     el.style.animation = '';
     clearTimeout(this._flashT);
     this._flashT = setTimeout(() => el.classList.add('hidden'), 520);
+  }
+
+  // red edge-vignette when Rostam takes a hit (Shank-style pain feedback)
+  hurtVignette() {
+    const el = document.getElementById('hurt-vignette');
+    if (!el) return;
+    el.classList.remove('hit');
+    void el.offsetWidth;
+    el.classList.add('hit');
+    clearTimeout(this._hvT);
+    this._hvT = setTimeout(() => el.classList.remove('hit'), 420);
   }
 
   toggleMute() {

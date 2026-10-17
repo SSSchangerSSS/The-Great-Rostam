@@ -78,6 +78,25 @@ export class FinisherQTE {
     return b;
   }
 
+  // hard-stop any active offer/QTE (player death, pause, leaving play state)
+  abort() {
+    if (this.state === 'idle') return null;
+    const wasQte = this.state === 'qte';
+    this.el.offer.classList.add('hidden');
+    this.el.overlay.classList.add('hidden');
+    document.body.classList.remove('in-qte');
+    this.state = 'idle';
+    const b = this.boss;
+    this.boss = null;
+    const g = this.game;
+    g.timescale = 1;
+    g.camera.zoomTo(1);
+    g.camera.freeY = false;
+    if (g.player && g.player.state === 'qte') g.player.state = 'idle';
+    if (wasQte && b && b.staggered && b.recoverFromStagger) b.recoverFromStagger();
+    return b;
+  }
+
   tryStart() {
     if (this.state !== 'offer') return;
     const p = this.game.player, b = this.boss;
@@ -245,6 +264,11 @@ export class FinisherQTE {
 
   update(rawDt) {
     const g = this.game;
+    // never let the QTE outlive the play state (death screen, results…)
+    if (g.stateName !== 'play') {
+      if (this.state !== 'idle') this.abort();
+      return;
+    }
     if (this.state === 'offer') {
       this.offerT -= rawDt;
       if (this._finishDown || g.input.justPressed('finisher')) {
@@ -293,6 +317,7 @@ export class FinisherQTE {
   debugWin() {
     if (this.state !== 'qte') return;
     const g = this.game;
+    this.el.offer.classList.add('hidden');
     this.el.overlay.classList.add('hidden');
     document.body.classList.remove('in-qte');
     const boss = this.boss, isMini = this.isMini;
@@ -351,11 +376,13 @@ export class Director {
     this.t += rawDt;
     const t = this.t;
 
-    // leap toward the boss with an arc
+    // leap toward the boss with an arc — trailing afterimages (Flash-style)
     if (t < 0.62 && b) {
       const f = easeOut(Math.min(1, t / 0.55));
       p.x = lerp(this.p0.x, b.x - p.facing * 48, f);
       p.yOff = -Math.sin(Math.min(1, t / 0.62) * Math.PI) * 86;
+      this._ghostT = (this._ghostT || 0) - rawDt;
+      if (this._ghostT <= 0) { this._ghostT = 0.05; p.pushGhost(0.42); }
     }
 
     if (t >= 0.62 && !this._slammed) {
