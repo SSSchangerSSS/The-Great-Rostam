@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>The Great Rostam ⚔️ — A Shahnameh Action Game</title>
+<meta name="description" content="An epic 2D action game inspired by Rostam of Shahnameh. Pure HTML5 + JavaScript — playable in your browser." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&family=Vazirmatn:wght@400;700;900&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="css/style.css" />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>⚔️</text></svg>" />
+</head>
+<body>
+  <div id="stage">
+    <canvas id="game" width="1280" height="720"></canvas>
+
+    <!-- ===== HUD layer ===== -->
+    <div id="hud" class="layer hidden">
+      <div id="hearts" aria-label="health"></div>
+      <div id="resources">
+        <div id="arrows" title="Arrows | تیر">🏹 <span id="arrow-count">8</span></div>
+        <div id="rakhsh-cd" title="Rakhsh cooldown | رخش">
+          <div id="rakhsh-radial"></div><span>🐎</span>
+        </div>
+      </div>
+      <div id="boss-bar" class="hidden">
+        <div id="boss-name">شیرِ خوانِ اوّل — The Lion</div>
+        <div id="boss-track"><div id="boss-fill"></div></div>
+      </div>
+      <div id="trial-label"></div>
+    </div>
+
+    <!-- ===== Dialogue layer ===== -->
+    <div id="dialogue" class="layer hidden">
+      <div id="dialogue-portrait"></div>
+      <div id="dialogue-box">
+        <div id="dialogue-speaker"></div>
+        <div id="dialogue-fa" dir="rtl"></div>
+        <div id="dialogue-en"></div>
+        <div id="dialogue-hint">▾ Z / Click</div>
+      </div>
+    </div>
+
+    <!-- ===== Menus ===== -->
+    <div id="title-screen" class="layer menu">
+      <div id="title-ornament">𐎣</div>
+      <h1 id="title-main">THE GREAT ROSTAM</h1>
+      <div id="title-fa">رستمِ بزرگ</div>
+      <div id="title-sub">A 2D Action Epic inspired by Shahnameh</div>
+      <div id="title-trial">Trial I — The Lion · خوانِ اوّل: شیر</div>
+      <div id="title-start" class="blink">— PRESS ENTER / اینتر —</div>
+      <div id="title-controls">
+        <span>← → Move</span><span>Z Jump</span><span>X Attack</span><span>C Bow</span><span>Shift Rakhsh</span><span>Esc Pause</span>
+      </div>
+    </div>
+
+    <div id="pause-screen" class="layer menu hidden">
+      <h2>PAUSED · توقف</h2>
+      <div class="menu-hint blink">Esc to resume</div>
+    </div>
+
+    <div id="victory-screen" class="layer menu hidden">
+      <h2 class="gold">TRIAL COMPLETE</h2>
+      <div id="victory-fa">خوانِ اوّل گشوده شد!</div>
+      <div id="victory-stats"></div>
+      <div class="menu-hint blink">ENTER — return to title</div>
+    </div>
+
+    <div id="defeat-screen" class="layer menu hidden">
+      <h2 class="blood">DEFEAT</h2>
+      <div id="defeat-fa">پهلوان به خاک افتاد… اما داستان تمام نشده</div>
+      <div class="menu-hint blink">ENTER — try again</div>
+    </div>
+
+    <div id="mute-indicator" class="hidden">🔇 M — sound off</div>
+  </div>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

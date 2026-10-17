@@ -2,113 +2,127 @@
 
 <div align="center">
 
-![Love2D](https://img.shields.io/badge/Love2D-11.5-00FF41?style=for-the-badge&logo=lua&logoColor=black)
-![Status](https://img.shields.io/badge/Status-In%20Development-orange?style=for-the-badge)
+▶️ **[PLAY NOW — بازی آنلاین](https://ssschangersss.github.io/The-Great-Rostam/)** ◀️
+
+![HTML5](https://img.shields.io/badge/HTML5-Canvas-E34F26?style=for-the-badge&logo=html5&logoColor=white)
+![JavaScript](https://img.shields.io/badge/JavaScript-ES%20Modules-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)
+![CSS3](https://img.shields.io/badge/CSS3-UI%20Layer-1572B6?style=for-the-badge&logo=css3&logoColor=white)
+![Status](https://img.shields.io/badge/Status-Playable-green?style=for-the-badge)
 ![License](https://img.shields.io/badge/License-MIT-00FF41?style=for-the-badge)
-![PRs Welcome](https://img.shields.io/badge/PRs-Welcome-brightgreen?style=for-the-badge)
 
 </div>
 
 <div align="center">
 
 > **EN** — An epic 2D action game about **Rostam**, the legendary hero of Ferdowsi's *Shahnameh*.
-> Fight through the **Seven Trials (هفت‌خوان)**, ride **Rakhsh**, and face the White Demon.
+> Trial I (**The Lion**) is fully playable in your browser — **100% procedural graphics, zero image assets**.
 
-> **FA** — یک بازی اکشن دوبعدی حماسی درباره‌ی **رستم دستان**، پهلوان شاهنامه‌ی فردوسی.
-> از **هفت‌خوان** عبور کن، سوار بر **رخش** بشو و با دیو سپید مبارزه کن.
+> **FA** — یک بازی اکشن دوبعدی حماسی درباره‌ی **رستم**، پهلوان شاهنامه‌ی فردوسی.
+> خوانِ اوّل (**شیر**) به‌طور کامل در مرورگر قابل بازی است — **تمام گرافیک پروسیجرال، بدون هیچ فایل تصویری**.
 
 </div>
 
 ---
 
-## 🏔 Story | داستان
+## 🎬 Screenshots | تصاویر بازی
 
-The land of Iran is plagued by demons. The aged hero **Rostam**, wearing his tiger-skin armor
-(پوست ببر) and wielding the ox-headed mace (گرز گاوسر), sets his famous horse **Rakhsh** toward
-Mazandaran to free King Kay Kavus. Seven trials stand between him and the White Demon —
-each one a level of the game.
-
-سرزمین ایران آلوده به دیوان است. پهلوان کهنسال **رستم** با جامه‌ی پلنگینه (پوست ببر) و گرز
-گاوسر، سوار بر اسب افسانه‌ای‌اش **رخش** راهی مازندران می‌شود تا کیکاوس را برهاند. هفت‌خوان
-سخت میان او و دیو سپید فاصله انداخته — هر خوان، یک مرحله از بازی است.
+| Title | Boss Fight |
+|---|---|
+| ![Title](docs/screenshots/title.png) | ![Boss](docs/screenshots/boss-fight.png) |
+| **Dialogue System** | **Rakhsh Mount** |
+| ![Dialogue](docs/screenshots/dialogue.png) | ![Mount](docs/screenshots/rakhsh-mount.png) |
 
 ---
 
-## 🎮 Gameplay | گیم‌پلی
+## ⚔️ What's inside | چه چیزی ساخته شده
 
-| Feature | Description |
-|---|---|
-| 🏃 **Side-scrolling action** | Fast 2D combat with jump, dash and combo attacks |
-| 🐎 **Rakhsh Mount** | Call Rakhsh for a speed & damage boost on demand |
-| 🏹 **Two weapon styles** | Ox-headed mace (melee) + heroic bow (ranged) |
-| 🗺 **Seven Trials** | Each خوان is a handcrafted level with a unique boss |
-| 💀 **Boss fights** | Lion, Dragon, Witch... and finally **دیو سپید** |
-| ⭐ **Persian atmosphere** | Pixel art inspired by Persian miniatures & Shahnameh calligraphy |
+- 🦴 **Procedural skeletal rig system** — Rostam, Rakhsh, the Lion and Jackals are animated bone-by-bone (11–12 bones each, keyframed clips: idle / run / jump / 3-hit combo / bow / pounce / roar / death)
+- 🏜 **Multi-layer parallax desert** — procedural mountains, dunes, drifting clouds, circling vultures, Achaemenid columns, animated braziers — all drawn in code
+- 💬 **Bilingual dialogue system (FA/EN)** — typewriter effect, procedural pixel portraits, epic script in the spirit of the Shahnameh
+- 🐎 **Rakhsh mount mechanic** — call the black stallion for a speed & trample boost
+- 🏹 **Two weapon styles** — 3-hit mace combo with hitstop & screen shake, chargeable heroic bow
+- 🦁 **Boss AI** — the Lion: prowl → telegraphed crouch → pounce → claw swipe, enrage roar at half health, arena lock
+- 🔊 **Procedural WebAudio SFX** — every sound synthesized in code, no audio files
+- 📊 **HTML/CSS UI layer** — hearts, arrow counter, Rakhsh cooldown radial, ornate boss bar, title/pause/victory/defeat screens
 
 ## 🕹 Controls | کنترل‌ها
 
 | Key | Action |
 |---|---|
-| `←` `→` | Move / حرکت |
-| `Z` / `Space` | Jump / پرش |
-| `X` | Mace attack / حمله با گرز |
-| `C` | Bow shot / تیراندازی |
+| `←` `→` / `A` `D` | Move / حرکت |
+| `Z` / `Space` | Jump · advance dialogue / پرش · رد کردن دیالوگ |
+| `X` | Mace combo (chain 3 hits) / ضربه‌ی سه‌تایی گرز |
+| `C` (hold) | Charge & release arrow / نشانه‌گیری و شلیک تیر |
 | `Shift` | Call Rakhsh / فراخوان رخش |
 | `Esc` | Pause / توقف |
+| `M` | Mute / بی‌صدا |
 
----
+## 🚀 Run it | اجرا
 
-## 🚀 Getting Started | نحوه اجرا
+**Option 1 — play online (easiest):** [ssschangersss.github.io/The-Great-Rostam](https://ssschangersss.github.io/The-Great-Rostam/)
 
-**EN:** Install [Love2D 11.5](https://love2d.org/), then:
+**Option 2 — locally** (ES modules need a tiny server):
 
 ```bash
 git clone https://github.com/SSSchangerSSS/The-Great-Rostam.git
 cd The-Great-Rostam
-love .
+python -m http.server 8000
+# open http://localhost:8000
 ```
 
-Or zip the folder, rename it to `Rostam.love`, and open it with Love2D.
-
-**FA:** اول [Love2D 11.5](https://love2d.org/) را نصب کنید، سپس مخزن را کلون کرده و دستور `love .` را اجرا کنید. یا پوشه را zip کرده و پسوندش را به `Rostam.love` تغییر دهید.
-
----
-
-## 📁 Project Structure | ساختار پروژه
+## 📁 Architecture | معماری ماژولار
 
 ```
 The-Great-Rostam/
-├── main.lua              # entry point & game states / نقطه ورود و حالت‌های بازی
-├── conf.lua              # Love2D window & module config / تنظیمات پنجره
-├── src/                  # game code modules (player, enemies, states)
-├── assets/               # sprites, audio, fonts / گرافیک، صدا و فونت
-├── docs/
-│   └── GAME_DESIGN.md    # full game design document / سند کامل طراحی بازی
-└── README.md
+├── index.html                  # canvas + DOM UI layers
+├── css/style.css               # HUD, dialogue box, menus (Persian-gold theme)
+├── js/
+│   ├── main.js                 # entry point
+│   ├── core/
+│   │   ├── game.js             # loop, state machine, shared systems
+│   │   ├── input.js            # action-mapped keyboard/mouse
+│   │   ├── camera.js           # smooth follow + shake
+│   │   ├── audio.js            # procedural WebAudio SFX
+│   │   └── utils.js            # math, easing, seeded RNG
+│   ├── gfx/
+│   │   ├── rig.js              # skeletal animation engine (bones/clips/animator)
+│   │   ├── paint.js            # character & prop painters (rostam/lion/rakhsh/jackal…)
+│   │   ├── particles.js        # pooled particle system
+│   │   └── parallax.js         # procedural environments & palettes
+│   ├── content/
+│   │   ├── rigs.js             # rig + animation clip definitions
+│   │   ├── dialogues.js        # bilingual scripts
+│   │   └── levels.js           # data-driven level definitions
+│   ├── entities/
+│   │   ├── player.js           # Rostam: combat, bow, mount
+│   │   ├── enemies.js          # Lion boss AI + Jackal
+│   │   └── projectiles.js      # arrows
+│   ├── world/
+│   │   └── world.js            # physics, props, triggers, pickups
+│   ├── ui/
+│   │   ├── hud.js              # hearts/arrows/cooldown/boss bar
+│   │   ├── dialogue.js         # typewriter dialogue system
+│   │   └── menus.js            # title/pause/victory/defeat
+│   └── states/
+│       ├── title.js  ├── play.js  └── results.js
+└── docs/
+    ├── GAME_DESIGN.md          # full design document
+    └── screenshots/            # gameplay captures
 ```
 
----
+**Add a new trial in 3 steps:** a new entry in `levels.js` → a new palette in `parallax.js` → new dialogue in `dialogues.js`. The engine handles the rest.
 
 ## 🗺 Roadmap | نقشه راه
 
-- [x] Project bootstrap — مقدمات پروژه
-- [x] Core game loop & menu — حلقه اصلی بازی و منو
-- [ ] Player movement, jump & mace combat — حرکت، پرش و مبارزه
-- [ ] Rakhsh mount mechanic — سازوکار سوار شدن بر رخش
-- [ ] Trial I — The Lion (خوان اول — شیر)
-- [ ] Trial II — The Burning Desert (خوان دوم — بیابان سوزان)
-- [ ] Trial III — The Dragon (خوان سوم — اژدها)
-- [ ] Trial IV — The Witch (خوان چهارم — جادوگر)
-- [ ] ??? (mystery trials — خوان‌های اسرارآمیز)
-- [ ] Final Boss — Div-e Sepid (غول آخر — دیو سپید)
+- [x] Web engine: rig animation, parallax, physics, dialogue, audio — **موتور وب کامل**
+- [x] Trial I — The Lion (playable!) — **خوان اوّل: شیر**
+- [ ] Trial II — The Burning Desert (night palette ready) — بیابان سوزان
+- [ ] Trial III — The Dragon — اژدها
+- [ ] Trials IV–VII — جادوگر تا دیو سپید
+- [ ] Mobile touch controls — کنترل لمسی موبایل
+- [ ] Gamepad support — پشتیبانی دسته
 
 ---
-
-## 🤝 Contributing | مشارکت
-
-Ideas, pixel art, Persian poetry quotes and code are all welcome — open an issue or a PR!
-
-ایده، هنر پیکسلی، ابیات شاهنامه و کد — همه خوش‌آمدید؛ ایشو یا پول‌ریکوئست باز کنید!
 
 ## 📜 License | مجوز
 

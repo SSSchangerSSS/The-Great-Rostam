@@ -3,23 +3,19 @@
 Thumbs.db
 desktop.ini
 
-# Love2D packaged builds / خروجی‌های بسته‌بندی شده
-build/
-export/
-*.zip
-
-# Lua tooling / ابزارهای Lua
-.luacheckrc.cache
-luac.out
-*.luac
-
 # Editors / ادیتورها
 .vscode/
 .idea/
 *.sublime-project
 *.sublime-workspace
 
-# Assets temp / فایل‌های موقت گرافیک
+# Logs & temp / لاگ و موقت
+*.log
+*.tmp
+npm-debug.log*
+
+# Assets source files (procedural game — keep repo clean) / فایل‌های منبع گرافیک
 *.psd
 *.xcf
-*.ase~
+*.ase
+*.aseprite

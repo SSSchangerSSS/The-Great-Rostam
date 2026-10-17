@@ -103,28 +103,33 @@ epic, condensed into seven handcrafted levels.
 
 | Item | Decision |
 |---|---|
-| Engine / موتور | Love2D 11.5 (Lua) |
-| Resolution | 1280×720 internal, integer pixel scaling |
-| Architecture | State machine (`menu` / `playing` / `paused` / `dialogue`) + module-per-entity in `src/` |
-| Physics | Custom AABB — no engine physics (keeps combat math explicit) |
-| Save | Trial progress in `love.filesystem` JSON |
-| Target platforms | Windows, Linux, macOS, Android (love-android) |
+| Stack / پشته | **Pure HTML5 + JavaScript (ES modules) + CSS** — zero frameworks, zero build tools |
+| Rendering | Canvas 2D at 1280×720 internal; DOM/CSS layer for HUD, dialogue and menus |
+| Graphics | **100% procedural** — skeletal rig animation (`js/gfx/rig.js`), code-drawn characters/props (`paint.js`), seeded parallax environments; **no image assets** |
+| Audio | Procedural WebAudio synthesis (`audio.js`) — no audio files |
+| Architecture | Modular ES modules: `core/` (loop, input, camera, audio), `gfx/`, `entities/`, `world/`, `ui/`, `states/`, `content/` (data-driven rigs, dialogues, levels) |
+| Physics | Custom feet-based AABB with pass-through platforms (`world.js`) |
+| Save | `localStorage` trial-completion flags |
+| Distribution | GitHub Pages (live at `/The-Great-Rostam/`), runs in any modern browser |
+| Target platforms | Desktop & mobile browsers; touch controls planned |
 
 ### Milestones | نقاط عطف
-1. **M1 — Playable core:** movement, mace combat, one demo enemy (current `main.lua` skeleton)
-2. **M2 — Trial I complete:** The Lion, art pass, HUD polish
-3. **M3 — Rakhsh & bow:** mount mechanic, ranged combat
-4. **M4 — Trials II–III**
-5. **M5 — Vertical slice:** Trials I–III + menu, music, save
-6. **M6 — Full game:** all seven trials + final boss
+1. **M1 — Web engine:** rig animation, parallax, physics, dialogue, procedural audio ✅
+2. **M2 — Trial I complete (playable):** The Lion boss, Rakhsh mount, bow, HUD, results flow ✅
+3. **M3 — Trials II–III** (night palette already prepared)
+4. **M4 — Trials IV–VII** + final boss: Div-e Sepid
+5. **M5 — Polish:** music layers, mobile touch controls, gamepad
+6. **M6 — Release:** itch.io + collected feedback
 
 ---
 
 ## 8. Open Questions | پرسش‌های باز
 
-- Persian text rendering in Love2D needs an RTL shaping library — candidates?
-  / رندر متن فارسی در Love2D به کتابخانه‌ی شکل‌دهی RTL نیاز دارد — گزینه‌ها؟
+- ~~Persian text rendering~~ ✅ solved — all text lives in the DOM/CSS layer where RTL and Vazirmatn render natively; the canvas stays graphics-only.
+  / حل شد — متن‌ها در لایه‌ی DOM هستند و RTL و فونت وزیرمتن بومی رندر می‌شوند.
 - Localize fully (EN/FA) or Persian-first with EN subtitles?
   / دوزبانه‌ی کامل یا فارسی‌محور با زیرنویس انگلیسی؟
 - Digital release: itch.io first?
   / انتشار: اول itch.io؟
+- In-canvas Persian (e.g. title calligraphy baked into scenes) — needs a shaping lib like `arabic-persian-reshaper` at build time — worth it?
+  / فارسی داخل بوم (مثلاً خوشنویسی عنوان در صحنه‌ها) — نیاز به کتابخانه‌ی شکل‌دهی در زمان بیلد — ارزشش رو داره؟
