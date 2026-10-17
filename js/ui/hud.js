@@ -41,5 +41,19 @@ export class Hud {
   }
   bossHide() { this.bossBar.classList.add('hidden'); }
 
+  // Shank-style chain counter — pops on every landed hit, fades when the chain drops
+  combo(n) {
+    const el = document.getElementById('combo');
+    if (!el) return;
+    const num = document.getElementById('combo-n');
+    if (n <= 1) { el.classList.remove('show'); return; }
+    num.textContent = n;
+    el.classList.remove('show');
+    void el.offsetWidth;
+    el.classList.add('show');
+    clearTimeout(this._comboT);
+    this._comboT = setTimeout(() => el.classList.remove('show'), 1500);
+  }
+
   setTrialLabel(txt) { this.trialLabel.textContent = txt; }
 }

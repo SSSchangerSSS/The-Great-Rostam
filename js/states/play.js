@@ -109,7 +109,8 @@ export class PlayState {
     this.arrows.update(dt, this.world, this.enemies, g);
     g.particles.update(dt);
     g.camera.setBounds(this.world.camMinX(), this.world.camMaxX());
-    g.camera.follow(p.x, p.y - 60, dt);
+    // Shank-style camera: lead the view into the direction the hero faces
+    g.camera.follow(p.x + p.facing * 64, p.y - 60, dt);
     g.camera.update(dt);
     g.hud.sync(p);
 
@@ -141,6 +142,7 @@ export class PlayState {
       e.draw(ctx, cam);
     }
     this.arrows.draw(ctx, cam);
+    this.player.drawTrail(ctx, cam);   // mace smear — the Flash whip arc
     this.player.draw(ctx, cam);
     g.particles.draw(ctx, cam);
     ctx.restore();

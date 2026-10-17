@@ -8,6 +8,7 @@ const VMAP = {
   'tb-jump': 'TouchJump',
   'tb-attack': 'TouchAttack',
   'tb-bow': 'TouchBow',
+  'tb-roll': 'TouchRoll',
   'tb-mount': 'TouchMount',
 };
 

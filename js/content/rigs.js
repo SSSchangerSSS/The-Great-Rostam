@@ -1,10 +1,18 @@
 // rigs.js — character rig definitions + animation clips (all hand-authored)
 // Angles: radians, 0 = right, positive = clockwise (canvas y-down).
 // Poses are DELTAS from each bone's rest angle.
+//
+// ANIMATION PHILOSOPHY (Shank 2 / Flash school):
+//  - every action reads as: anticipation (coil BACK, eased 'in'/'back')
+//    → whip strike (eased 'snap', 2-3 frames) → impact hold → follow-through settle
+//  - root motion channels (_ox/_oy) carry weight: dips on landings, drifts on swings
+//  - silhouettes first: exaggerate, then let easing sell the physics
 
 import { Rig, Clip } from '../gfx/rig.js';
 
 const P2 = Math.PI / 2;
+
+function K(t, pose, ease) { return ease ? { t, pose, ease } : { t, pose }; }
 
 // ============================================================
 // ROSTAM — hip origin (feet ≈ hip + 52px down)
@@ -29,82 +37,136 @@ const rostamDef = {
   ],
 };
 
-function K(t, pose) { return { t, pose }; }
-
 const rostamClips = {
-  idle: new Clip(2.4, true, [
-    K(0,   { spine: 0.05, armF1: 0.06, armF2: 0.10, armB1: -0.06, head: 0.04 }),
-    K(0.5, { spine: -0.04, armF1: -0.05, armF2: -0.08, armB1: 0.05, head: -0.03 }),
-    K(1,   { spine: 0.05, armF1: 0.06, armF2: 0.10, armB1: -0.06, head: 0.04 }),
+  // ---- idle: breathing + weight shifts + head scans (alive, never frozen) ----
+  idle: new Clip(3.2, true, [
+    K(0,    { spine: 0.03, head: 0.04, armF1: 0.06, armF2: 0.10, armB1: -0.05, armB2: -0.05, legF2: 0.14, _oy: 0 }),
+    K(0.3,  { spine: -0.02, head: -0.05, armF1: -0.04, armF2: -0.06, armB1: 0.06, armB2: 0.04, _oy: -1.5 }),
+    K(0.55, { spine: 0.05, head: 0.08, armF1: 0.09, armF2: 0.13, armB1: -0.08, armB2: -0.07, legF2: 0.04, _oy: 0.6 }),
+    K(0.8,  { spine: -0.01, head: -0.07, armF1: -0.02, armF2: -0.04, armB1: 0.04, _oy: -1.0 }),
+    K(1,    { spine: 0.03, head: 0.04, armF1: 0.06, armF2: 0.10, armB1: -0.05, armB2: -0.05, legF2: 0.14, _oy: 0 }),
   ]),
-  run: new Clip(0.55, true, [
-    K(0,    { legF1: 0.55, legF2: 0.75, legB1: -0.55, legB2: -0.55, armF1: -0.85, armF2: -0.5, armB1: 0.8, armB2: -0.6, spine: 0.16 }),
-    K(0.25, { legF1: 0.05, legF2: 0.05, legB1: -0.05, legB2: 0.45, armF1: -0.25, armF2: -0.2, armB1: 0.25, armB2: -0.3, spine: 0.18 }),
-    K(0.5,  { legF1: -0.55, legF2: -0.55, legB1: 0.55, legB2: 0.75, armF1: 0.55, armF2: 0.3, armB1: -0.7, armB2: 0.5, spine: 0.16 }),
-    K(0.75, { legF1: -0.05, legF2: 0.35, legB1: 0.05, legB2: 0.05, armF1: 0.15, armF2: 0.1, armB1: -0.2, armB2: 0.2, spine: 0.18 }),
-    K(1,    { legF1: 0.55, legF2: 0.75, legB1: -0.55, legB2: -0.55, armF1: -0.85, armF2: -0.5, armB1: 0.8, armB2: -0.6, spine: 0.16 }),
+
+  // ---- run: contact / pass / contact / pass with vertical bob ----
+  run: new Clip(0.46, true, [
+    K(0,     { legF1: 0.62, legF2: 0.5, legB1: -0.62, legB2: -0.85, armF1: -0.95, armF2: -0.55, armB1: 0.95, armB2: -0.7, spine: 0.17, head: -0.05, _oy: 2 }),
+    K(0.22,  { legF1: 0.02, legF2: 0.30, legB1: -0.10, legB2: 0.5, armF1: -0.35, armF2: -0.25, armB1: 0.4, armB2: -0.35, spine: 0.21, head: -0.03, _oy: -4.5 }),
+    K(0.44,  { legF1: -0.52, legF2: -0.9, legB1: 0.58, legB2: 0.62, armF1: 0.62, armF2: 0.35, armB1: -0.88, armB2: 0.6, spine: 0.17, head: -0.05, _oy: 1.5 }),
+    K(0.66,  { legF1: -0.08, legF2: 0.45, legB1: 0.05, legB2: 0.25, armF1: 0.25, armF2: 0.2, armB1: -0.3, armB2: 0.3, spine: 0.21, head: -0.03, _oy: -4.5 }),
+    K(0.84,  { legF1: 0.3, legF2: 0.5, legB1: -0.3, legB2: -0.4, armF1: -0.5, armF2: -0.3, armB1: 0.5, armB2: -0.4, spine: 0.18, _oy: -1 }),
+    K(1,     { legF1: 0.62, legF2: 0.5, legB1: -0.62, legB2: -0.85, armF1: -0.95, armF2: -0.55, armB1: 0.95, armB2: -0.7, spine: 0.17, head: -0.05, _oy: 2 }),
   ]),
-  jump: new Clip(0.3, false, [
-    K(0,   { legF1: 0.3, legF2: 0.8, legB1: -0.25, legB2: 0.7, armF1: -0.5, armB1: 0.4, spine: 0.05 }),
-    K(0.4, { legF1: -0.5, legF2: 1.15, legB1: -0.7, legB2: 1.0, armF1: -1.4, armF2: -0.4, armB1: 1.3, spine: -0.08 }),
-    K(1,   { legF1: -0.2, legF2: 0.7, legB1: -0.35, legB2: 0.65, armF1: -1.1, armB1: 1.0, spine: -0.05 }),
+
+  // ---- jump: explosive extension → stretch → apex tuck ----
+  jump: new Clip(0.34, false, [
+    K(0,    { legF1: 0.35, legF2: 0.9, legB1: -0.3, legB2: 0.8, armF1: -0.7, armF2: -0.3, armB1: 0.6, spine: 0.1, _oy: 3 }),
+    K(0.4,  { legF1: -0.55, legF2: 1.2, legB1: -0.75, legB2: 1.05, armF1: -1.5, armF2: -0.5, armB1: 1.35, spine: -0.1, head: -0.1, _oy: -5 }, 'out'),
+    K(1,    { legF1: -0.25, legF2: 0.85, legB1: -0.4, legB2: 0.7, armF1: -1.15, armF2: -0.4, armB1: 1.0, spine: -0.06, head: -0.04, _oy: -2 }, 'smooth'),
   ]),
-  fall: new Clip(0.5, true, [
-    K(0,   { legF1: -0.15, legF2: 0.5, legB1: -0.3, legB2: 0.45, armF1: -1.3, armF2: 0.3, armB1: 1.35, armB2: -0.3, spine: -0.04 }),
-    K(0.5, { legF1: -0.3, legF2: 0.55, legB1: -0.15, legB2: 0.5, armF1: -1.45, armF2: 0.4, armB1: 1.5, armB2: -0.35, spine: -0.02 }),
-    K(1,   { legF1: -0.15, legF2: 0.5, legB1: -0.3, legB2: 0.45, armF1: -1.3, armF2: 0.3, armB1: 1.35, armB2: -0.3, spine: -0.04 }),
+
+  // ---- fall: controlled flail, looped ----
+  fall: new Clip(0.55, true, [
+    K(0,   { legF1: -0.2, legF2: 0.55, legB1: -0.35, legB2: 0.5, armF1: -1.35, armF2: 0.35, armB1: 1.4, armB2: -0.35, spine: -0.05, head: -0.06 }),
+    K(0.5, { legF1: -0.35, legF2: 0.62, legB1: -0.15, legB2: 0.55, armF1: -1.55, armF2: 0.45, armB1: 1.6, armB2: -0.42, spine: -0.02, head: -0.02 }),
+    K(1,   { legF1: -0.2, legF2: 0.55, legB1: -0.35, legB2: 0.5, armF1: -1.35, armF2: 0.35, armB1: 1.4, armB2: -0.35, spine: -0.05, head: -0.06 }),
   ]),
-  attack1: new Clip(0.34, false, [   // horizontal forehand swing
-    K(0,    { armF1: -1.9, armF2: 1.1, spine: -0.14, legF1: -0.2, legB1: 0.3 }),
-    K(0.35, { armF1: -2.5, armF2: 1.5, spine: -0.22, legF1: -0.3, legB1: 0.4 }),
-    K(0.62, { armF1: 1.25, armF2: 0.35, spine: 0.22, legF1: 0.35, legB1: -0.25 }),
-    K(1,    { armF1: 0.9, armF2: 0.4, spine: 0.1, legF1: 0.1, legB1: -0.05 }),
+
+  // ---- land: absorb the impact deep, spring back with overshoot ----
+  land: new Clip(0.26, false, [
+    K(0,    { legF1: 0.55, legF2: 1.05, legB1: -0.5, legB2: 0.9, spine: 0.3, head: 0.06, armF1: -1.1, armF2: -0.2, armB1: 1.0, armB2: -0.5, _oy: 12 }),
+    K(0.55, { legF1: 0.28, legF2: 0.68, legB1: -0.24, legB2: 0.58, spine: 0.15, head: 0.02, armF1: -0.6, armF2: -0.1, armB1: 0.55, _oy: 4 }, 'back'),
+    K(1,    { legF1: 0.05, legF2: 0.2, legB1: -0.05, legB2: 0.15, spine: 0.04, head: 0, armF1: -0.2, armB1: 0.2, _oy: 0 }, 'out'),
   ]),
-  attack2: new Clip(0.32, false, [   // backhand return
-    K(0,    { armF1: 1.15, armF2: 0.5, spine: 0.2 }),
-    K(0.3,  { armF1: 1.45, armF2: 0.8, spine: 0.28, legF1: 0.3 }),
-    K(0.6,  { armF1: -1.35, armF2: 0.3, spine: -0.24, legF1: -0.3 }),
-    K(1,    { armF1: -0.7, armF2: 0.3, spine: -0.1 }),
+
+  // ---- roll (dodge): full tuck — whole-body spin drawn by the entity ----
+  roll: new Clip(0.34, false, [
+    K(0,    { legF1: 0.9, legF2: 1.3, legB1: -0.8, legB2: 0.9, spine: 0.5, head: 0.45, armF1: -1.9, armF2: 1.0, armB1: 1.5, armB2: -0.5, _oy: 10 }, 'out'),
+    K(0.62, { legF1: 1.05, legF2: 1.45, legB1: -0.95, legB2: 1.05, spine: 0.58, head: 0.5, armF1: -2.05, armF2: 1.15, armB1: 1.65, armB2: -0.6, _oy: 11 }, 'smooth'),
+    K(1,    { legF1: 0.3, legF2: 0.6, legB1: -0.2, legB2: 0.4, spine: 0.16, head: 0.05, armF1: -0.7, armF2: 0.3, armB1: 0.6, armB2: -0.3, _oy: 2 }, 'back'),
   ]),
-  attack3: new Clip(0.52, false, [   // overhead smash
-    K(0,    { armF1: -1.2, armF2: 0.6, armB1: -0.6, spine: -0.18 }),
-    K(0.32, { armF1: -2.9, armF2: 0.7, armB1: -2.4, spine: -0.3, legF1: -0.35, legB1: 0.35 }),
-    K(0.6,  { armF1: 1.5, armF2: 0.5, armB1: 1.2, spine: 0.34, legF1: 0.4, legB1: -0.3 }),
-    K(1,    { armF1: 1.15, armF2: 0.45, armB1: 0.9, spine: 0.18 }),
+
+  // ---- attack1: horizontal forehand — coil back, WHIP, impact hold ----
+  attack1: new Clip(0.30, false, [
+    K(0,    { armF1: -0.6, armF2: 0.5, spine: -0.06, head: 0.02, legF1: 0.05, legB1: -0.05 }),
+    K(0.3,  { armF1: -2.35, armF2: 1.35, spine: -0.3, head: -0.12, legF1: -0.2, legB1: 0.3, _ox: -6, _oy: -2 }, 'back'),
+    K(0.52, { armF1: 1.45, armF2: 0.1, spine: 0.34, head: 0.12, legF1: 0.42, legB1: -0.38, _ox: 8, _oy: 2 }, 'snap'),
+    K(0.72, { armF1: 1.32, armF2: 0.16, spine: 0.28, head: 0.08, legF1: 0.3, legB1: -0.25, _ox: 5 }, 'out'),
+    K(1,    { armF1: -0.2, armF2: 0.35, spine: 0.06, head: 0, legF1: 0.05, legB1: -0.05, _ox: 0 }, 'out'),
   ]),
+
+  // ---- attack2: backhand return — same grammar, mirrored energy ----
+  attack2: new Clip(0.28, false, [
+    K(0,    { armF1: 1.25, armF2: 0.3, spine: 0.26, head: 0.08 }),
+    K(0.28, { armF1: 1.8, armF2: 0.75, spine: 0.38, head: 0.14, legF1: 0.28, _ox: 5, _oy: -2 }, 'back'),
+    K(0.5,  { armF1: -1.6, armF2: 0.15, spine: -0.3, head: -0.1, legF1: -0.38, legB1: 0.32, _ox: 9, _oy: 2 }, 'snap'),
+    K(0.7,  { armF1: -1.48, armF2: 0.2, spine: -0.24, _ox: 6 }, 'out'),
+    K(1,    { armF1: -0.6, armF2: 0.4, spine: -0.06, legF1: 0, legB1: 0, _ox: 0 }, 'out'),
+  ]),
+
+  // ---- attack3: overhead GRZ-E GAVSAR slam — huge coil, earth-shaker ----
+  attack3: new Clip(0.55, false, [
+    K(0,    { armF1: -0.9, armF2: 0.5, armB1: -0.4, spine: -0.1, head: -0.02, legF1: 0, legB1: 0 }),
+    K(0.3,  { armF1: -2.95, armF2: 0.55, armB1: -2.5, spine: -0.34, head: -0.2, legF1: -0.25, legB1: 0.28, _oy: -4, _ox: -3 }, 'back'),
+    K(0.46, { armF1: 1.55, armF2: 0.28, armB1: 1.3, spine: 0.44, head: 0.18, legF1: 0.48, legB1: -0.42, _oy: 9, _ox: 6 }, 'snap'),
+    K(0.66, { armF1: 1.42, armF2: 0.32, armB1: 1.15, spine: 0.38, head: 0.12, legF1: 0.36, legB1: -0.3, _oy: 7 }, 'out'),
+    K(1,    { armF1: 0.55, armF2: 0.38, armB1: 0.5, spine: 0.1, head: 0.02, legF1: 0.05, legB1: -0.05, _oy: 0, _ox: 0 }, 'out'),
+  ]),
+
+  // ---- air attack: fast downward arc while airborne ----
+  airAttack: new Clip(0.3, false, [
+    K(0,    { armF1: -2.2, armF2: 0.8, spine: -0.2, head: -0.06, legF1: -0.4, legB1: 0.5 }),
+    K(0.4,  { armF1: 1.5, armF2: 0.2, spine: 0.32, head: 0.12, legF1: 0.55, legB1: -0.35, _oy: 3 }, 'snap'),
+    K(1,    { armF1: 1.15, armF2: 0.28, spine: 0.2, legF1: 0.35, legB1: -0.2, _oy: 1 }, 'out'),
+  ]),
+
+  // ---- bow (kept, + weight) ----
   bowDraw: new Clip(0.22, false, [
     K(0,   { armF1: -P2 + 0.15, armF2: 0.05, armB1: P2 - 0.9, armB2: -1.1, spine: -0.06 }),
-    K(1,   { armF1: -P2 + 0.1, armF2: 0.0, armB1: P2 - 0.45, armB2: -1.5, spine: -0.1 }),
+    K(1,   { armF1: -P2 + 0.1, armF2: 0.0, armB1: P2 - 0.45, armB2: -1.5, spine: -0.1, _oy: -1 }, 'out'),
   ]),
   bowHold: new Clip(0.5, true, [
-    K(0,  { armF1: -P2 + 0.1, armF2: 0.0, armB1: P2 - 0.45, armB2: -1.5, spine: -0.1 }),
-    K(1,  { armF1: -P2 + 0.1, armF2: 0.0, armB1: P2 - 0.45, armB2: -1.5, spine: -0.1 }),
+    K(0,  { armF1: -P2 + 0.1, armF2: 0.0, armB1: P2 - 0.45, armB2: -1.5, spine: -0.1, _oy: -1 }),
+    K(0.5, { armF1: -P2 + 0.1, armF2: 0.0, armB1: P2 - 0.45, armB2: -1.5, spine: -0.1, _oy: -1.6 }),
+    K(1,  { armF1: -P2 + 0.1, armF2: 0.0, armB1: P2 - 0.45, armB2: -1.5, spine: -0.1, _oy: -1 }),
   ]),
   bowShot: new Clip(0.18, false, [
-    K(0,   { armF1: -P2 + 0.1, armF2: 0.0, armB1: P2 - 0.45, armB2: -1.5, spine: -0.1 }),
-    K(0.4, { armF1: -P2 + 0.12, armF2: 0.0, armB1: P2 - 0.95, armB2: -0.2, spine: 0.04 }),
-    K(1,   { armF1: -P2 + 0.3, armF2: 0.1, armB1: P2 - 0.7, armB2: -0.3, spine: 0.0 }),
+    K(0,   { armF1: -P2 + 0.1, armF2: 0.0, armB1: P2 - 0.45, armB2: -1.5, spine: -0.1, _oy: -1 }),
+    K(0.4, { armF1: -P2 + 0.12, armF2: 0.0, armB1: P2 - 0.95, armB2: -0.2, spine: 0.04, _oy: 1 }, 'snap'),
+    K(1,   { armF1: -P2 + 0.3, armF2: 0.1, armB1: P2 - 0.7, armB2: -0.3, spine: 0.0, _oy: 0 }, 'out'),
   ]),
-  hurt: new Clip(0.32, false, [
-    K(0,   { spine: -0.3, head: -0.3, armF1: -0.9, armB1: 1.1, legF1: -0.3 }),
-    K(0.4, { spine: -0.45, head: -0.4, armF1: -1.2, armB1: 1.4, legF1: -0.45, legB1: 0.4 }),
-    K(1,   { spine: -0.1, head: -0.1, armF1: -0.4, armB1: 0.5 }),
+
+  // ---- hurt: whipped BACK with snap, recovers fast (no more skate!) ----
+  hurt: new Clip(0.4, false, [
+    K(0,    { spine: -0.18, head: -0.14, armF1: -0.7, armF2: 0.3, armB1: 0.9, legF1: -0.1 }),
+    K(0.22, { spine: -0.52, head: -0.44, armF1: -1.3, armF2: 0.6, armB1: 1.5, armB2: -0.6, legF1: -0.42, legB1: 0.36, _ox: -6 }, 'snap'),
+    K(0.62, { spine: -0.32, head: -0.26, armF1: -0.9, armB1: 1.1, legF1: -0.2, _ox: -3 }, 'out'),
+    K(1,    { spine: -0.05, head: -0.04, armF1: -0.4, armB1: 0.5, legF1: 0, _ox: 0 }, 'out'),
   ]),
+
+  // ---- dead: buckling collapse, sprawled & STAYS (loops off) ----
+  dead: new Clip(0.9, false, [
+    K(0,    { spine: -0.3, head: -0.3, armF1: -1.0, armB1: 1.2, legF1: -0.2, _oy: 0 }),
+    K(0.4,  { spine: -0.55, head: -0.5, armF1: -1.8, armB1: 1.9, legF1: 0.4, legB1: -0.6, _oy: 8 }, 'in'),
+    K(0.75, { spine: -0.35, head: -0.2, armF1: -2.6, armF2: 0.9, armB1: 2.4, armB2: -0.8, legF1: 1.0, legF2: 1.6, legB1: -1.1, legB2: 1.2, _oy: 20 }, 'out'),
+    K(1,    { spine: -0.15, head: -0.1, armF1: -2.9, armF2: 1.0, armB1: 2.7, armB2: -0.9, legF1: 1.4, legF2: 1.8, legB1: -1.4, legB2: 1.4, _oy: 26 }, 'bounce'),
+  ]),
+
   mount: new Clip(0.55, false, [
     K(0,   { legF1: 0.7, legB1: -0.7, armF1: -1.6, armB1: 1.6 }),
-    K(0.5, { legF1: 1.0, legB1: -1.0, armF1: -2.1, armB1: 2.1 }),
-    K(1,   { legF1: 0.45, legF2: 0.9, legB1: -0.45, legB2: 0.9, armF1: -0.9, armB1: 0.9, spine: 0.1 }),
+    K(0.5, { legF1: 1.0, legB1: -1.0, armF1: -2.1, armB1: 2.1 }, 'back'),
+    K(1,   { legF1: 0.45, legF2: 0.9, legB1: -0.45, legB2: 0.9, armF1: -0.9, armB1: 0.9, spine: 0.1 }, 'out'),
   ]),
+
   // ---- finisher cinematic clips (QTE success) ----
   finishLeap: new Clip(0.55, false, [
     K(0,   { armF1: -1.4, armF2: 0.6, armB1: 0.9, legF1: 0.45, legB1: -0.4, spine: -0.12 }),
-    K(0.5, { armF1: -2.7, armF2: 0.5, armB1: 2.3, legF1: 0.95, legF2: 1.15, legB1: -0.95, legB2: 0.85, spine: -0.24, head: -0.15 }),
-    K(1,   { armF1: -2.8, armF2: 0.5, armB1: 2.35, legF1: 1.0, legF2: 1.15, legB1: -1.0, legB2: 0.9, spine: -0.26, head: -0.18 }),
+    K(0.5, { armF1: -2.7, armF2: 0.5, armB1: 2.3, legF1: 0.95, legF2: 1.15, legB1: -0.95, legB2: 0.85, spine: -0.24, head: -0.15 }, 'out'),
+    K(1,   { armF1: -2.8, armF2: 0.5, armB1: 2.35, legF1: 1.0, legF2: 1.15, legB1: -1.0, legB2: 0.9, spine: -0.26, head: -0.18 }, 'smooth'),
   ]),
   finishSlam: new Clip(0.42, false, [
     K(0,    { armF1: -2.8, armF2: 0.5, armB1: 2.35, legF1: 1.0, legF2: 1.15, legB1: -1.0, legB2: 0.9, spine: -0.26, head: -0.18 }),
-    K(0.5,  { armF1: 1.55, armF2: 0.4, armB1: 1.15, legF1: 0.55, legF2: 0.95, legB1: -0.6, legB2: 0.65, spine: 0.46, head: 0.2 }),
-    K(1,    { armF1: 1.3, armF2: 0.4, armB1: 0.9, legF1: 0.5, legF2: 0.8, legB1: -0.5, legB2: 0.55, spine: 0.3, head: 0.1 }),
+    K(0.5,  { armF1: 1.55, armF2: 0.4, armB1: 1.15, legF1: 0.55, legF2: 0.95, legB1: -0.6, legB2: 0.65, spine: 0.46, head: 0.2, _oy: 6 }, 'snap'),
+    K(1,    { armF1: 1.3, armF2: 0.4, armB1: 0.9, legF1: 0.5, legF2: 0.8, legB1: -0.5, legB2: 0.55, spine: 0.3, head: 0.1, _oy: 4 }, 'out'),
   ]),
 };
 
@@ -130,16 +192,17 @@ const rakhshDef = {
 
 const rakhshClips = {
   idle: new Clip(3.0, true, [
-    K(0,   { neck: 0.05, head: 0.03, tail: 0.08 }),
-    K(0.5, { neck: -0.05, head: -0.04, tail: -0.1 }),
-    K(1,   { neck: 0.05, head: 0.03, tail: 0.08 }),
+    K(0,   { neck: 0.05, head: 0.03, tail: 0.08, _oy: 0 }),
+    K(0.5, { neck: -0.05, head: -0.04, tail: -0.1, _oy: -1 }),
+    K(1,   { neck: 0.05, head: 0.03, tail: 0.08, _oy: 0 }),
   ]),
-  gallop: new Clip(0.46, true, [
-    K(0,    { legFL: 0.85, legFR: -0.35, legBL: -0.5, legBR: 0.55, neck: 0.12, tail: -0.25 }),
-    K(0.25, { legFL: -0.45, legFR: 0.3, legBL: 0.5, legBR: -0.3, neck: -0.1, tail: 0.1 }),
-    K(0.5,  { legFL: 0.2, legFR: -0.6, legBL: 0.75, legBR: -0.55, neck: 0.05, tail: -0.15 }),
-    K(0.75, { legFL: -0.55, legFR: 0.45, legBL: 0.1, legBR: 0.2, neck: -0.08, tail: 0.05 }),
-    K(1,    { legFL: 0.85, legFR: -0.35, legBL: -0.5, legBR: 0.55, neck: 0.12, tail: -0.25 }),
+  gallop: new Clip(0.42, true, [
+    K(0,    { legFL: 0.95, legFR: -0.4, legBL: -0.6, legBR: 0.65, neck: 0.14, head: 0.05, tail: -0.3, _oy: -3 }),
+    K(0.22, { legFL: -0.5, legFR: 0.35, legBL: 0.55, legBR: -0.35, neck: -0.12, head: -0.05, tail: 0.12, _oy: 2 }, 'out'),
+    K(0.46, { legFL: 0.25, legFR: -0.7, legBL: 0.85, legBR: -0.65, neck: 0.06, head: 0.02, tail: -0.2, _oy: -2 }, 'out'),
+    K(0.7,  { legFL: -0.6, legFR: 0.5, legBL: 0.15, legBR: 0.25, neck: -0.1, head: -0.04, tail: 0.06, _oy: 2 }, 'out'),
+    K(0.88, { legFL: 0.4, legFR: -0.2, legBL: -0.3, legBR: 0.3, neck: 0.05, tail: -0.15, _oy: -2 }, 'smooth'),
+    K(1,    { legFL: 0.95, legFR: -0.4, legBL: -0.6, legBR: 0.65, neck: 0.14, head: 0.05, tail: -0.3, _oy: -3 }),
   ]),
 };
 
@@ -165,58 +228,63 @@ const lionDef = {
 };
 
 const lionClips = {
-  prowl: new Clip(1.15, true, [
-    K(0,    { legFL: 0.5, legFR: -0.3, legBL: -0.45, legBR: 0.4, neck: 0.06, tail1: 0.15, tail2: -0.3, head: 0.05 }),
-    K(0.25, { legFL: 0.0, legFR: 0.05, legBL: 0.0, legBR: 0.0, neck: 0.02, tail1: -0.05, tail2: 0.2 }),
-    K(0.5,  { legFL: -0.45, legFR: 0.45, legBL: 0.5, legBR: -0.4, neck: -0.06, tail1: -0.2, tail2: 0.35, head: -0.04 }),
-    K(0.75, { legFL: 0.0, legFR: -0.05, legBL: 0.05, legBR: 0.0, neck: 0.02, tail1: 0.1, tail2: -0.15 }),
-    K(1,    { legFL: 0.5, legFR: -0.3, legBL: -0.45, legBR: 0.4, neck: 0.06, tail1: 0.15, tail2: -0.3, head: 0.05 }),
+  prowl: new Clip(1.05, true, [
+    K(0,    { legFL: 0.55, legFR: -0.35, legBL: -0.5, legBR: 0.45, neck: 0.08, head: 0.06, tail1: 0.15, tail2: -0.3, _oy: 1 }),
+    K(0.25, { legFL: 0.0, legFR: 0.05, legBL: 0.0, legBR: 0.0, neck: 0.02, head: 0.02, tail1: -0.05, tail2: 0.2, _oy: -2.5 }, 'out'),
+    K(0.5,  { legFL: -0.5, legFR: 0.5, legBL: 0.55, legBR: -0.45, neck: -0.06, head: -0.04, tail1: -0.2, tail2: 0.35, _oy: 1 }, 'out'),
+    K(0.75, { legFL: 0.0, legFR: -0.05, legBL: 0.05, legBR: 0.0, neck: 0.02, head: 0.02, tail1: 0.1, tail2: -0.15, _oy: -2.5 }, 'out'),
+    K(1,    { legFL: 0.55, legFR: -0.35, legBL: -0.5, legBR: 0.45, neck: 0.08, head: 0.06, tail1: 0.15, tail2: -0.3, _oy: 1 }),
   ]),
-  crouch: new Clip(0.55, false, [   // telegraph before pounce
-    K(0,   { legFL: 0.3, legBL: -0.25, neck: 0.1, head: 0.05 }),
-    K(0.7, { legFL: 1.1, legBL: -0.9, neck: 0.35, head: -0.25, tail1: 0.4 }),
-    K(1,   { legFL: 1.15, legBL: -0.95, neck: 0.38, head: -0.28, tail1: 0.45, tail2: 0.3 }),
+  crouch: new Clip(0.55, false, [   // telegraph before pounce — tension coil
+    K(0,   { legFL: 0.3, legBL: -0.25, neck: 0.1, head: 0.05, _oy: 0 }),
+    K(0.7, { legFL: 1.15, legBL: -0.95, neck: 0.4, head: -0.28, tail1: 0.4, _oy: 6 }, 'in'),
+    K(1,   { legFL: 1.22, legBL: -1.0, neck: 0.44, head: -0.32, tail1: 0.5, tail2: 0.3, _oy: 8 }, 'back'),
   ]),
   pounce: new Clip(0.55, false, [
-    K(0,   { legFL: 1.15, legBL: -0.95, neck: 0.38, head: -0.28 }),
-    K(0.3, { legFL: -1.0, legFR: -0.8, legBL: 0.9, legBR: 0.7, neck: -0.5, head: 0.3, tail1: -0.5 }),
-    K(0.7, { legFL: -0.7, legFR: -0.5, legBL: 0.55, legBR: 0.45, neck: -0.3, head: 0.2 }),
-    K(1,   { legFL: 0.4, legBL: -0.3, neck: 0.15, head: 0.0 }),
+    K(0,   { legFL: 1.22, legBL: -1.0, neck: 0.44, head: -0.32, _oy: 8 }),
+    K(0.3, { legFL: -1.05, legFR: -0.85, legBL: 0.95, legBR: 0.75, neck: -0.5, head: 0.3, tail1: -0.5, _oy: -4 }, 'snap'),
+    K(0.7, { legFL: -0.7, legFR: -0.5, legBL: 0.55, legBR: 0.45, neck: -0.3, head: 0.2, _oy: -2 }, 'out'),
+    K(1,   { legFL: 0.4, legBL: -0.3, neck: 0.15, head: 0.0, _oy: 2 }, 'bounce'),
   ]),
-  swipe: new Clip(0.4, false, [
-    K(0,   { legFR: -0.5, neck: -0.15 }),
-    K(0.35, { legFR: -2.2, neck: -0.35, head: -0.2 }),
-    K(0.65, { legFR: 0.9, neck: 0.2, head: 0.15 }),
-    K(1,   { legFR: -0.2, neck: 0.0 }),
+  swipe: new Clip(0.42, false, [
+    K(0,    { legFR: -0.4, neck: -0.1, head: -0.04 }),
+    K(0.32, { legFR: -2.3, neck: -0.4, head: -0.24, tail1: 0.3, _oy: -2 }, 'back'),
+    K(0.58, { legFR: 0.95, neck: 0.24, head: 0.16, _oy: 2 }, 'snap'),
+    K(1,    { legFR: -0.2, neck: 0.0, head: 0.0, _oy: 0 }, 'out'),
   ]),
   roar: new Clip(1.0, false, [
     K(0,    { neck: -0.2, jaw: 0.2, head: -0.1 }),
-    K(0.3,  { neck: -0.85, jaw: 1.15, head: -0.35, tail1: -0.45, tail2: 0.5 }),
-    K(0.6,  { neck: -0.75, jaw: 1.0, head: -0.3, tail1: -0.3, tail2: 0.35 }),
-    K(0.75, { neck: -0.8, jaw: 1.1, head: -0.32 }),
-    K(1,    { neck: -0.1, jaw: 0.15, head: -0.05 }),
+    K(0.3,  { neck: -0.85, jaw: 1.15, head: -0.35, tail1: -0.45, tail2: 0.5, _oy: -3 }, 'back'),
+    K(0.6,  { neck: -0.75, jaw: 1.0, head: -0.3, tail1: -0.3, tail2: 0.35, _oy: -2 }),
+    K(0.75, { neck: -0.8, jaw: 1.1, head: -0.32 }, 'smooth'),
+    K(1,    { neck: -0.1, jaw: 0.15, head: -0.05, _oy: 0 }, 'out'),
+  ]),
+  flinch: new Clip(0.22, false, [   // light-hit head snap — never interrupts gait
+    K(0,   { neck: 0.28, head: 0.22, jaw: 0.1 }),
+    K(0.6, { neck: 0.08, head: 0.06 }, 'out'),
+    K(1,   { neck: 0, head: 0, jaw: 0 }, 'out'),
   ]),
   hurt: new Clip(0.3, false, [
-    K(0,   { neck: 0.3, head: 0.25, spineShake: 0 }),
-    K(0.5, { neck: 0.1, head: 0.1 }),
-    K(1,   { neck: 0.0, head: 0.0 }),
+    K(0,   { neck: 0.3, head: 0.25 }),
+    K(0.5, { neck: 0.1, head: 0.1 }, 'out'),
+    K(1,   { neck: 0.0, head: 0.0 }, 'out'),
   ]),
   die: new Clip(0.9, false, [
-    K(0,   { neck: 0.1, head: 0.05, legFL: 0.3 }),
-    K(0.5, { neck: 0.6, head: 0.4, jaw: 0.6, legFL: 1.0, legBL: -0.8, tail1: 0.5 }),
-    K(1,   { neck: 0.85, head: 0.5, jaw: 0.8, legFL: 1.3, legBL: -1.1, legFR: 1.1, legBR: -0.9, tail1: 0.7, tail2: 0.6 }),
+    K(0,   { neck: 0.1, head: 0.05, legFL: 0.3, _oy: 0 }),
+    K(0.5, { neck: 0.6, head: 0.4, jaw: 0.6, legFL: 1.0, legBL: -0.8, tail1: 0.5, _oy: 6 }, 'in'),
+    K(1,   { neck: 0.85, head: 0.5, jaw: 0.8, legFL: 1.3, legBL: -1.1, legFR: 1.1, legBR: -0.9, tail1: 0.7, tail2: 0.6, _oy: 14 }, 'bounce'),
   ]),
   // kneeling, dizzy — the finisher window
   stagger: new Clip(1.7, true, [
-    K(0,   { legFL: 1.15, legBL: -1.1, legFR: 1.0, legBR: -0.95, neck: 0.5, head: 0.32, jaw: 0.15, tail1: 0.4 }),
-    K(0.5, { legFL: 1.24, legBL: -1.18, legFR: 1.08, legBR: -1.02, neck: 0.6, head: 0.4, jaw: 0.08, tail1: 0.3, tail2: -0.2 }),
-    K(1,   { legFL: 1.15, legBL: -1.1, legFR: 1.0, legBR: -0.95, neck: 0.5, head: 0.32, jaw: 0.15, tail1: 0.4 }),
+    K(0,   { legFL: 1.15, legBL: -1.1, legFR: 1.0, legBR: -0.95, neck: 0.5, head: 0.32, jaw: 0.15, tail1: 0.4, _oy: 8 }),
+    K(0.5, { legFL: 1.24, legBL: -1.18, legFR: 1.08, legBR: -1.02, neck: 0.6, head: 0.4, jaw: 0.08, tail1: 0.3, tail2: -0.2, _oy: 10 }),
+    K(1,   { legFL: 1.15, legBL: -1.1, legFR: 1.0, legBR: -0.95, neck: 0.5, head: 0.32, jaw: 0.15, tail1: 0.4, _oy: 8 }),
   ]),
 };
 
 export const LION_RIG = new Rig(lionDef);
 export const LION_CLIPS = lionClips;
-export const LION_BODY_H = 44;  // leg length + body half-height ≈ stand height
+export const LION_BODY_H = 44;
 
 // ============================================================
 // JACKAL — fast trash mob
@@ -232,31 +300,38 @@ const jackalDef = {
 };
 
 const jackalClips = {
-  run: new Clip(0.32, true, [
-    K(0,   { legF: 0.6, legB: -0.5, tail: 0.2, neck: 0.08 }),
-    K(0.5, { legF: -0.5, legB: 0.55, tail: -0.25, neck: -0.08 }),
-    K(1,   { legF: 0.6, legB: -0.5, tail: 0.2, neck: 0.08 }),
+  run: new Clip(0.3, true, [
+    K(0,   { legF: 0.65, legB: -0.55, tail: 0.2, neck: 0.08, _oy: -1.5 }),
+    K(0.5, { legF: -0.55, legB: 0.6, tail: -0.25, neck: -0.08, _oy: 1 }, 'out'),
+    K(1,   { legF: 0.65, legB: -0.55, tail: 0.2, neck: 0.08, _oy: -1.5 }),
   ]),
   lunge: new Clip(0.35, false, [
     K(0,   { legF: 0.5, legB: -0.4, neck: 0.2 }),
-    K(0.35, { legF: -1.1, legB: 0.8, neck: -0.45, head: 0.3, tail: -0.4 }),
-    K(1,   { legF: -0.6, legB: 0.5, neck: -0.2 }),
+    K(0.3, { legF: -1.15, legB: 0.85, neck: -0.45, head: 0.3, tail: -0.4, _oy: -3 }, 'back'),
+    K(0.6, { legF: -0.9, legB: 0.6, neck: -0.3, head: 0.2 }, 'snap'),
+    K(1,   { legF: -0.5, legB: 0.4, neck: -0.15 }, 'out'),
   ]),
-  die: new Clip(0.5, false, [
+  flinch: new Clip(0.24, false, [   // hit reaction — knocked sideways, recovers
+    K(0,   { neck: 0.4, head: 0.35, tail: 0.3, legF: -0.2 }),
+    K(0.6, { neck: 0.12, head: 0.1, tail: 0.1 }, 'out'),
+    K(1,   { neck: 0, head: 0, tail: 0 }, 'out'),
+  ]),
+  die: new Clip(0.55, false, [
     K(0,  {}),
-    K(1,  { legF: 1.2, legB: -1.0, neck: 0.8, head: 0.5, tail: 0.6 }),
+    K(0.4, { legF: 0.8, legB: -0.7, neck: 0.5, head: 0.3, tail: 0.4, _oy: 4 }, 'in'),
+    K(1,  { legF: 1.3, legB: -1.1, neck: 0.85, head: 0.55, tail: 0.7, _oy: 8 }, 'bounce'),
   ]),
   // Pack Alpha extras: howl summon + staggered finisher window
   howl: new Clip(1.0, false, [
     K(0,    { neck: 0.1, head: 0.05 }),
-    K(0.3,  { neck: -0.75, head: -0.3, tail: -0.35, legF: -0.2 }),
+    K(0.3,  { neck: -0.75, head: -0.3, tail: -0.35, legF: -0.2 }, 'back'),
     K(0.75, { neck: -0.68, head: -0.26, tail: -0.28, legF: -0.15 }),
-    K(1,    { neck: 0.05, head: 0.0, tail: 0.0 }),
+    K(1,    { neck: 0.05, head: 0.0, tail: 0.0 }, 'out'),
   ]),
   stagger: new Clip(1.7, true, [
-    K(0,   { legF: 0.95, legB: -0.9, neck: 0.55, head: 0.35, tail: 0.4 }),
-    K(0.5, { legF: 1.05, legB: -1.0, neck: 0.64, head: 0.42, tail: 0.28 }),
-    K(1,   { legF: 0.95, legB: -0.9, neck: 0.55, head: 0.35, tail: 0.4 }),
+    K(0,   { legF: 0.95, legB: -0.9, neck: 0.55, head: 0.35, tail: 0.4, _oy: 5 }),
+    K(0.5, { legF: 1.05, legB: -1.0, neck: 0.64, head: 0.42, tail: 0.28, _oy: 6.5 }),
+    K(1,   { legF: 0.95, legB: -0.9, neck: 0.55, head: 0.35, tail: 0.4, _oy: 5 }),
   ]),
 };
 

@@ -45,10 +45,12 @@ epic, condensed into seven handcrafted levels.
 
 | Ability | Key | Design intent |
 |---|---|---|
-| Mace combo (گرز گاوسر) | `X` `X` `X` | 3-hit chain, heavy finisher with screen shake | زنجیره‌ی ۳ ضربه با ضربه‌ی پایانی و لرزش صفحه |
+| Mace combo (گرز گاوسر) | `X` `X` `X` | 3-hit chain — every swing **lunges forward** (Shank-style step-in), heavy finisher launches enemies | زنجیره‌ی ۳ ضربه با یورش به جلو و پرتاب دشمن در ضربه‌ی پایانی |
+| Dodge roll (غلتک پهلوانی) | `V` | Invulnerable tumble with afterimage trail; cancels attack & bow recovery; also jumps out of it | غلتک مصون با ردپای شبح‌وار؛ ضربه و کمان را کنسل می‌کند |
+| Air attack (ضربه‌ی هوایی) | `X` in air | Fast downward arc; striking an enemy bounces Rostam up for juggles | کمان سریع در هوا؛ برخورد، رستم را برای توالی هوایی بالا می‌پراند |
 | Heroic bow (کمان رستم) | `C` (hold to charge) | Charged ranged shot, limited arrows per trial | تیر شارژی از راه دور، تیر محدود در هر خوان |
-| Jump & wall-slide | `Z` | Classic platforming traversal | عبور از موانع پلتفرمی |
-| Rakhsh mount (رخش) | `Shift` | 6s speed/damage boost, long cooldown; Rakhsh tramples small demons | تقویت ۶ ثانیه‌ای سرعت/آسیب؛ رخش دیوهای کوچک را له می‌کند |
+| Jump & wall-slide | `Z` | Classic platforming + coyote-time & jump-buffering for forgiving touch play | پرش با coyote-time و بافر برای لمسِ بخشنده |
+| Rakhsh mount (رخش) | `Shift` / `E` | 6s speed/damage boost, long cooldown; Rakhsh tramples small demons | تقویت ۶ ثانیه‌ای سرعت/آسیب؛ رخش دیوهای کوچک را له می‌کند |
 | Tiger-skin guard (پوست ببر) | hold `↓` | Damage-reducing block, cannot move | دفاع کاهنده‌ی آسیب، بدون حرکت |
 
 ### 3.2 Health & Difficulty | سلامتی و سختی
@@ -81,8 +83,29 @@ Design notes / نکات طراحی:
   / وقتی رهبر گله به زانو درمی‌آید، بقیه **فرار می‌کنند** — دوئل تمیز می‌ماند.
 - Touch: the same four actions are big on-screen pads; the matching pad glows during the QTE.
   / روی موبایل همان چهار دکمه‌ی درشت روی صفحه هستند و دکمه‌ی درست در QTE می‌درخشد.
+- Safety valves: player death, pausing, or leaving the play state **aborts** any live offer/QTE and the staggered boss rises cleanly — no zombie kneels, no floating bosses (stagger settles to the ground).
+  / شیرهای اطمینان: مرگ، توقف یا خروج از بازی، هر offer/QTE فعال را **abort** می‌کند و باوس سالم بلند می‌شود.
 - Future bosses only need data: `finisherPrompts` count + HP threshold in `levels.js`.
   / باس‌های آینده فقط داده می‌خواهند: تعداد پرامپت و آستانه‌ی سلامتی در `levels.js`.
+
+### 3.4 Animation Bible — مکتب فلش (Shank 2 school)
+
+Every clip is authored around **per-key easing** — the pipeline of a readable strike:
+  / هر کلیپ با **easing کلیدبه‌کلید** ساخته می‌شود — دستور پخت ضربه‌ی خوانا:
+
+1. **Anticipation** — coil *back* past rest (`ease: 'back'` overshoot), hips drift `_ox/_oy`
+2. **Whip** — 2–3 frame strike into `ease: 'snap'` (quintic blast)
+3. **Impact hold** — a short hold key sells the hit (with engine hitstop + sparks)
+4. **Follow-through** — settle back with `ease: 'out'` / `'bounce'`
+
+Systemic juice layered on top / آبه‌سازی سیستمی روی آن:
+- **Root motion channels** `_ox/_oy` in every pose — dips on landings, drifts on swings / حرکت ریشه در پوزها
+- **Squash & stretch** spring on jump/land / فشردگی و کشیدگی فنری
+- **Secondary motion** — beard & tiger-pelt lag behind velocity / رش و پوست ببر با تأخیر حرکت می‌کنند
+- **Mace smear trail** — additive gold ribbon sampled through the whip window / دنبالهٔ طلایی گرز
+- **Afterimages** — during roll & the finisher leap / شبح‌های تصویر در غلتک و پرش فینیشر
+- **White hit-flash** (additive re-draw, no canvas filters → identical on all mobile browsers) / فلاش سفید ضربه
+- **Enemy reactions** — jackals flinch & skid (friction, no skating), lion head-snaps via a recoil overlay without breaking its armor states / واکنش دشمن‌ها به هر ضربه
 
 ---
 
