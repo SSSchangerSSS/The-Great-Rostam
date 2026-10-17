@@ -254,38 +254,39 @@ export const LION_PAL = {
   eye: '#2a1508', teeth: '#f2ede2', claw: '#e8dcc8',
 };
 
-export function paintLion(ctx, joints, alpha = 1, hurtFlash = 0) {
+export function paintLion(ctx, joints, alpha = 1, hurtFlash = 0, enraged = false) {
+  const P = enraged ? { ...LION_PAL, coat: '#c86a38', coatLight: '#e08a52', mane: '#6e2c10' } : LION_PAL;
   ctx.save();
   ctx.globalAlpha = alpha;
   const bx = (joints.legFL.x + joints.legBL.x) / 2;
   const by = (joints.legFL.y + joints.legBL.y) / 2 - 10;
 
   // far legs
-  limb(ctx, joints.legBR, 9, LION_PAL.coatDark);
-  limb(ctx, joints.legFR, 9, LION_PAL.coatDark);
+  limb(ctx, joints.legBR, 9, P.coatDark);
+  limb(ctx, joints.legFR, 9, P.coatDark);
 
   // tail with tuft
-  limb(ctx, joints.tail1, 4.5, LION_PAL.coat);
-  limb(ctx, joints.tail2, 4, LION_PAL.coat);
-  blob(ctx, joints.tail2.tipX, joints.tail2.tipY, 5, 5, LION_PAL.mane);
+  limb(ctx, joints.tail1, 4.5, P.coat);
+  limb(ctx, joints.tail2, 4, P.coat);
+  blob(ctx, joints.tail2.tipX, joints.tail2.tipY, 5, 5, P.mane);
 
   // body
-  blob(ctx, bx, by, 36, 16, hurtFlash > 0 ? '#e88' : LION_PAL.coat, 0.04);
-  blob(ctx, bx - 25, by + 2, 14, 13, hurtFlash > 0 ? '#e88' : LION_PAL.coat);
+  blob(ctx, bx, by, 36, 16, hurtFlash > 0 ? '#e88' : P.coat, 0.04);
+  blob(ctx, bx - 25, by + 2, 14, 13, hurtFlash > 0 ? '#e88' : P.coat);
   // belly light
-  blob(ctx, bx + 2, by + 8, 26, 7, LION_PAL.coatLight);
+  blob(ctx, bx + 2, by + 8, 26, 7, P.coatLight);
 
   // neck + mane behind head
-  limb(ctx, joints.neck, 15, LION_PAL.coat);
+  limb(ctx, joints.neck, 15, P.coat);
   const hx = joints.head.tipX, hy = joints.head.tipY;
   const nx = joints.neck.tipX, ny = joints.neck.tipY;
-  blob(ctx, (nx + hx) / 2 - 3, (ny + hy) / 2, 19, 19, LION_PAL.mane);
-  blob(ctx, hx - 4, hy - 2, 15, 15, LION_PAL.mane);
+  blob(ctx, (nx + hx) / 2 - 3, (ny + hy) / 2, 19, 19, P.mane);
+  blob(ctx, hx - 4, hy - 2, 15, 15, P.mane);
 
   // head
-  blob(ctx, hx, hy, 11.5, 10, hurtFlash > 0 ? '#e88' : LION_PAL.coatLight, joints.head.angle);
+  blob(ctx, hx, hy, 11.5, 10, hurtFlash > 0 ? '#e88' : P.coatLight, joints.head.angle);
   // muzzle
-  blob(ctx, hx + 9, hy + 3, 7, 5.5, LION_PAL.coatLight, joints.head.angle);
+  blob(ctx, hx + 9, hy + 3, 7, 5.5, P.coatLight, joints.head.angle);
   ctx.fillStyle = LION_PAL.eye;
   ctx.fillRect(hx + 2, hy - 4, 2.6, 2.6);
   // jaw with teeth
@@ -296,42 +297,71 @@ export function paintLion(ctx, joints, alpha = 1, hurtFlash = 0) {
   ctx.fillRect(jx + 1, jy - 1, 2.4, 3);
 
   // near legs
-  limb(ctx, joints.legFL, 10, LION_PAL.coat);
-  limb(ctx, joints.legBL, 10, LION_PAL.coat);
+  limb(ctx, joints.legFL, 10, P.coat);
+  limb(ctx, joints.legBL, 10, P.coat);
+
+  // enraged: ember-eyes glow
+  if (enraged) {
+    ctx.fillStyle = 'rgba(255,110,40,0.85)';
+    ctx.beginPath(); ctx.arc(hx + 3, hy - 3, 2.6, 0, TAU); ctx.fill();
+  }
 
   ctx.restore();
 }
 
 // ============================================================
-// JACKAL
+// JACKAL (+ white Pack Alpha variant)
 // ============================================================
 export const JACKAL_PAL = {
   coat: '#8a6d4a', coatLight: '#a3835c', dark: '#5e4a30',
   eye: '#d8b23a',
 };
+const ALPHA_PAL = {
+  coat: '#d9d2c4', coatLight: '#efe9dc', dark: '#a89f8d',
+  eye: '#e04430',
+};
 
-export function paintJackal(ctx, joints, alpha = 1) {
+export function paintJackal(ctx, joints, alpha = 1, opts = {}) {
+  const P = opts.alpha ? ALPHA_PAL : JACKAL_PAL;
   ctx.save();
   ctx.globalAlpha = alpha;
   const bx = (joints.legF.x + joints.legB.x) / 2;
   const by = (joints.legF.y + joints.legB.y) / 2 - 7;
 
-  limb(ctx, joints.legB, 5, JACKAL_PAL.dark);
-  limb(ctx, joints.tail, 4, JACKAL_PAL.dark);
-  blob(ctx, bx, by, 19, 9, JACKAL_PAL.coat, 0.03);
-  limb(ctx, joints.neck, 8, JACKAL_PAL.coat);
+  limb(ctx, joints.legB, 5, P.dark);
+  limb(ctx, joints.tail, 4, P.dark);
+  blob(ctx, bx, by, 19, 9, P.coat, 0.03);
+  // alpha: shaggy back mane
+  if (opts.alpha) {
+    ctx.strokeStyle = P.dark;
+    ctx.lineWidth = 5; ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(bx - 14, by - 5);
+    ctx.quadraticCurveTo(bx - 2, by - 13, bx + 12, by - 6);
+    ctx.stroke();
+  }
+  limb(ctx, joints.neck, 8, P.coat);
   const hx = joints.head.tipX, hy = joints.head.tipY;
-  blob(ctx, joints.head.tipX * 0.5 + joints.neck.tipX * 0.5, joints.head.tipY * 0.5 + joints.neck.tipY * 0.5, 7.5, 7, JACKAL_PAL.coat);
+  blob(ctx, joints.head.tipX * 0.5 + joints.neck.tipX * 0.5, joints.head.tipY * 0.5 + joints.neck.tipY * 0.5, 7.5, 7, P.coat);
   // pointed snout
-  blob(ctx, hx + 6, hy + 2, 7, 3.5, JACKAL_PAL.coatLight, joints.head.angle);
+  blob(ctx, hx + 6, hy + 2, 7, 3.5, P.coatLight, joints.head.angle);
   // ears
-  ctx.fillStyle = JACKAL_PAL.dark;
+  ctx.fillStyle = P.dark;
   ctx.beginPath();
   ctx.moveTo(hx - 5, hy - 4); ctx.lineTo(hx - 2, hy - 13); ctx.lineTo(hx + 2, hy - 4);
   ctx.closePath(); ctx.fill();
-  ctx.fillStyle = JACKAL_PAL.eye;
+  // alpha: battle scar across the shoulder
+  if (opts.alpha) {
+    ctx.strokeStyle = '#a03028';
+    ctx.lineWidth = 1.8;
+    ctx.beginPath();
+    ctx.moveTo(bx - 8, by - 7); ctx.lineTo(bx - 2, by + 3);
+    ctx.moveTo(bx - 5, by - 6); ctx.lineTo(bx - 6, by + 2);
+    ctx.stroke();
+  }
+  ctx.fillStyle = P.eye;
   ctx.fillRect(hx + 1, hy - 2, 2, 2);
-  limb(ctx, joints.legF, 5.5, JACKAL_PAL.coat);
+  limb(ctx, joints.legF, 5.5, P.coat);
   ctx.restore();
 }
 

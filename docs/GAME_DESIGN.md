@@ -60,13 +60,37 @@ epic, condensed into seven handcrafted levels.
 - Difficulty curve: Trial I–III teach combat, IV–V punish greed, VI–VII are boss gauntlets.
   / منحنی سختی: خوان‌های ۱–۳ آموزش مبارزه، ۴–۵ تنبیه حریص‌بازی، ۶–۷ دوئل‌های پایانی.
 
+### 3.3 Finisher QTE — ضربهٔ نهایی (God of War style)
+
+Every **mini-boss and boss** carries a finisher. When its HP crosses the threshold it **staggers** — it drops to its knees, becomes invulnerable, and the FINISHER offer appears. The player has ~4.5 seconds to approach and trigger it.
+  / هر **مینی‌باس و باس** فینیشر دارد. وقتی سلامتی‌اش از آستانه عبور کند **به زانو درمی‌آید**، شکست‌ناپذیر می‌شود و پیشنهاد «ضربهٔ نهایی» ظاهر می‌شود. بازیکن ~۴.۵ ثانیه فرصت دارد نزدیک شود و آن را آغاز کند.
+
+| Step | What happens |
+|---|---|
+| 1. Offer | Pulsing gold banner + FINISH button (`F` on keyboard). Slow world, camera leans in |
+| 2. QTE | Time slows to ~0.2×; a ring shrinks onto a target action (`⚔ X` · `🏹 C` · `⤒ Z`) |
+| 3. Timing | Press the **matching** button while the ring is locked on the target — `PERFECT` window inside the `GOOD` ring |
+| 4. Chain | Mini-boss = **2 prompts**, boss = **3 prompts** (escalating speed) — each success lands an unanswered strike |
+| 5. Kill | All prompts done → cinematic: Rostam **leaps, and slams the ox-headed mace down** — flash, shockwave, kill |
+| Fail | Two missed prompts (wrong button / early / late) → the boss **ENRAGES**: heals ~27%, burning aura, +40% speed — and the stagger can only re-open after more damage |
+
+Design notes / نکات طراحی:
+- QTE timing runs on **real time**, never scaled — slow-mo never stretches the ring.
+  / زمان‌بندی QTE با زمان واقعی است؛ اسلوموشن حلقه را کشیده نمی‌کند.
+- Trash mobs **flee** when their alpha staggers — the duel stays clean and readable.
+  / وقتی رهبر گله به زانو درمی‌آید، بقیه **فرار می‌کنند** — دوئل تمیز می‌ماند.
+- Touch: the same four actions are big on-screen pads; the matching pad glows during the QTE.
+  / روی موبایل همان چهار دکمه‌ی درشت روی صفحه هستند و دکمه‌ی درست در QTE می‌درخشد.
+- Future bosses only need data: `finisherPrompts` count + HP threshold in `levels.js`.
+  / باس‌های آینده فقط داده می‌خواهند: تعداد پرامپت و آستانه‌ی سلامتی در `levels.js`.
+
 ---
 
 ## 4. The Seven Trials | هفت‌خوان
 
 | # | Trial (خوان) | Mechanic | Boss |
 |---|---|---|---|
-| I | **The Lion — شیر** | Melee tutorial; arena combat | Maneater Lion |
+| I | **The Lion — شیر** | Melee tutorial; jackal packs, **White Jackal mini-boss**, arena duel; **finisher QTEs on both** | Maneater Lion |
 | II | **The Burning Desert — بیابان سوزان** | Survival & navigation; find water before health drains | Sandstorm + jackal packs |
 | III | **The Dragon — اژدها** | Stealth section: the dragon sleeps; wake it and you fight | Fire-breathing Dragon |
 | IV | **The Witch — جادوگر** | Illusion maze; distinguish real paths from fakes | The Hag (پیرزن جادوگر) |
@@ -104,22 +128,24 @@ epic, condensed into seven handcrafted levels.
 | Item | Decision |
 |---|---|
 | Stack / پشته | **Pure HTML5 + JavaScript (ES modules) + CSS** — zero frameworks, zero build tools |
-| Rendering | Canvas 2D at 1280×720 internal; DOM/CSS layer for HUD, dialogue and menus |
-| Graphics | **100% procedural** — skeletal rig animation (`js/gfx/rig.js`), code-drawn characters/props (`paint.js`), seeded parallax environments; **no image assets** |
+| Rendering | Canvas 2D with an **adaptive logical viewport** (height-locked ≈720, min width 780, DPR-aware) — any aspect from phone portrait to ultrawide; DOM/CSS layer for HUD, dialogue, QTE and menus |
+| Graphics | **100% procedural** — skeletal rig animation (`js/gfx/rig.js`), code-drawn characters/props (`paint.js`), seeded world-anchored parallax; **no image assets** |
 | Audio | Procedural WebAudio synthesis (`audio.js`) — no audio files |
-| Architecture | Modular ES modules: `core/` (loop, input, camera, audio), `gfx/`, `entities/`, `world/`, `ui/`, `states/`, `content/` (data-driven rigs, dialogues, levels) |
+| Architecture | Modular ES modules: `core/` (loop, input, camera, audio), `gfx/`, `entities/`, `world/`, `ui/`, `states/`, `content/`, plus `qte.js` (the finisher engine) |
 | Physics | Custom feet-based AABB with pass-through platforms (`world.js`) |
+| Mobile | **Mobile-first**: coarse-pointer detection, virtual thumb pads (multi-touch pointer events), tap-to-advance, safe-area insets, fullscreen toggle, haptics (`navigator.vibrate`), one-time rotate hint |
 | Save | `localStorage` trial-completion flags |
 | Distribution | GitHub Pages (live at `/The-Great-Rostam/`), runs in any modern browser |
-| Target platforms | Desktop & mobile browsers; touch controls planned |
+| Target platforms | Desktop & **mobile browsers (touch-first)**; gamepad planned |
 
 ### Milestones | نقاط عطف
 1. **M1 — Web engine:** rig animation, parallax, physics, dialogue, procedural audio ✅
 2. **M2 — Trial I complete (playable):** The Lion boss, Rakhsh mount, bow, HUD, results flow ✅
-3. **M3 — Trials II–III** (night palette already prepared)
-4. **M4 — Trials IV–VII** + final boss: Div-e Sepid
-5. **M5 — Polish:** music layers, mobile touch controls, gamepad
-6. **M6 — Release:** itch.io + collected feedback
+3. **M2.5 — Finishers & mobile:** White Jackal mini-boss, **God-of-War-style finisher QTEs**, cinematic slam, enrage, **mobile-first touch controls** ✅
+4. **M3 — Trials II–III** (night palette already prepared)
+5. **M4 — Trials IV–VII** + final boss: Div-e Sepid
+6. **M5 — Polish:** music layers, gamepad
+7. **M6 — Release:** itch.io + collected feedback
 
 ---
 

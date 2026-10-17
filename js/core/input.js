@@ -1,15 +1,17 @@
-// input.js — keyboard abstraction with action mapping + frame-edge presses
+// input.js — unified keyboard + touch input with action mapping + frame-edge presses
+// Virtual button codes (TouchLeft, TouchJump, ...) are injected by ui/touch.js
 const BINDS = {
-  left: ['ArrowLeft', 'KeyA'],
-  right: ['ArrowRight', 'KeyD'],
+  left: ['ArrowLeft', 'KeyA', 'TouchLeft'],
+  right: ['ArrowRight', 'KeyD', 'TouchRight'],
   up: ['ArrowUp', 'KeyW'],
   down: ['ArrowDown', 'KeyS'],
-  jump: ['KeyZ', 'Space'],
-  attack: ['KeyX'],
-  bow: ['KeyC'],
-  mount: ['ShiftLeft', 'ShiftRight'],
-  advance: ['KeyZ', 'Space', 'Enter'],
-  confirm: ['Enter'],
+  jump: ['KeyZ', 'Space', 'TouchJump'],
+  attack: ['KeyX', 'TouchAttack'],
+  bow: ['KeyC', 'TouchBow'],
+  mount: ['ShiftLeft', 'ShiftRight', 'TouchMount'],
+  finisher: ['KeyF', 'KeyV'],
+  advance: ['KeyZ', 'Space', 'Enter', 'MouseAdv', 'TouchAdv'],
+  confirm: ['Enter', 'TouchAdv'],
   pause: ['Escape'],
   mute: ['KeyM'],
 };
@@ -33,6 +35,11 @@ export class Input {
     });
     window.addEventListener('mouseup', () => this.down_.delete('MouseAdv'));
   }
+
+  // ---- virtual button injection (touch UI / overlays) ----
+  press(code) { this.down_.add(code); this.just_.add(code); }
+  release(code) { this.down_.delete(code); }
+
   _codes(action) { return BINDS[action] || []; }
   down(action) { return this._codes(action).some(c => this.down_.has(c)); }
   justPressed(action) { return this._codes(action).some(c => this.just_.has(c)); }

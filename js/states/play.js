@@ -1,8 +1,8 @@
-// play.js — the main gameplay state
+// play.js — the main gameplay state (now with mini-boss + finisher QTE integration)
 import { clamp } from '../core/utils.js';
 import { World } from '../world/world.js';
 import { Player } from '../entities/player.js';
-import { Lion, Jackal } from '../entities/enemies.js';
+import { Lion, Jackal, WhiteJackal } from '../entities/enemies.js';
 import { Arrows } from '../entities/projectiles.js';
 import { Animator } from '../gfx/rig.js';
 import { RAKHSH_RIG, RAKHSH_CLIPS } from '../content/rigs.js';
@@ -15,6 +15,7 @@ export class PlayState {
     const g = this.game;
     g.menus.hideAll();
     g.hud.show();
+    g.timescale = 1;
     this.levelId = levelId;
     this.world = new World(levelId, g);
     this.player = new Player(g);
@@ -25,6 +26,10 @@ export class PlayState {
     for (const e of this.world.def.enemies) {
       if (e.type === 'jackal') this.enemies.push(new Jackal(g, e.x, e.y));
     }
+    // MINI-BOSS (White Jackal) + BOSS (Lion) — both offer finisher QTEs
+    const MB = this.world.def.miniBoss;
+    this.miniBoss = MB ? new WhiteJackal(g, MB.x, MB.y, MB.arena, `${MB.name.fa} — ${MB.name.en}`) : null;
+    if (this.miniBoss) this.enemies.push(this.miniBoss);
     const B = this.world.def.boss;
     this.boss = new Lion(g, B.x, B.y, B.arena);
     this.enemies.push(this.boss);
@@ -42,6 +47,8 @@ export class PlayState {
 
     g.camera.setBounds(0, this.world.width);
     g.camera.follow(this.player.x, this.player.y - 60, 0, true);
+    g.camera.zoomTo(1);
+    g.camera.freeY = false;
 
     g.hud.setTrialLabel(`${this.world.def.name.fa} | ${this.world.def.name.en}`);
     g.hud.sync(this.player);
@@ -60,18 +67,32 @@ export class PlayState {
 
     if (input.justPressed('mute')) g.toggleMute();
 
-    // pause toggle
-    if (input.justPressed('pause')) {
-      this.paused = !this.paused;
-      if (this.paused) g.menus.show('pause'); else g.menus.hideAll();
+    // pause toggle (tap / click / Esc all resume)
+    if (input.justPressed('pause')) g.pauseToggle();
+    if (this.paused) {
+      if (input.justPressed('advance') || input.justPressed('confirm')) g.pauseToggle();
+      return;
     }
-    if (this.paused) return;
 
     // dialogue freezes the world
     if (g.dialogue.active) {
-      g.dialogue.update(dt);
+      g.dialogue.update(g.realDt);
       this.world.time += dt;
       g.particles.update(dt);
+      g.camera.update(dt);
+      return;
+    }
+
+    // ---- finisher QTE / cinematic: frozen world, rigs breathe in close to real time ----
+    if (g.qte.state === 'qte' || g.director.active) {
+      const boss = g.qte.state === 'qte' ? g.qte.boss : g.director.boss;
+      this.world.time += dt * 3;
+      if (this.player.rig) this.player.rig.update(dt * 4);
+      if (boss && boss.rig) boss.rig.update(dt * 4);
+      g.particles.update(dt);
+      if (boss) {
+        g.camera.follow((this.player.x + boss.x) / 2, Math.min(this.player.y, boss.y) - 60, g.realDt);
+      }
       g.camera.update(dt);
       return;
     }
@@ -100,7 +121,7 @@ export class PlayState {
   draw(ctx) {
     const g = this.game;
     const cam = g.camera;
-    this.world.env.setView(g.viewW, g.viewH);
+    this.world.env.setView(g.viewW, g.viewH, cam.zoom);
     this.world.env.drawSky(ctx, cam, this.world.time);
     this.world.env.drawMid(ctx, cam, this.world.time);
 
@@ -116,7 +137,7 @@ export class PlayState {
       paintRakhsh(ctx, rj);
     }
     for (const e of this.enemies) {
-      if (e === this.boss && !this.boss.active && !this.boss.dead) continue;
+      if ((e === this.boss || e === this.miniBoss) && !e.active && !e.dead) continue;
       e.draw(ctx, cam);
     }
     this.arrows.draw(ctx, cam);

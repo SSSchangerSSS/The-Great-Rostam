@@ -40,6 +40,37 @@ export const DIALOGUES = {
     },
   ],
 
+  pre_jackal: [
+    {
+      speaker: 'narrator',
+      fa: 'از میان تپه‌ها، گرگیِ سپیدی برآمد — رهبرِ گله، ریش‌سفیدِ نبردها. چشم‌هایش آتش بود.',
+      en: 'From among the dunes rose a white jackal — the pack\u2019s alpha, grey-muzzled veteran of a hundred fights. Its eyes burned.',
+    },
+    {
+      speaker: 'rostam',
+      fa: 'پیرِ گله خودش آمده! خب… اول راه را باز کن، بعد با شیر حرف می‌زنم.',
+      en: 'The old one comes himself! Very well — clear the road first, then I shall speak with the lion.',
+    },
+    {
+      speaker: 'narrator',
+      fa: 'پندِ میدان: هرگاه دشمن به زانو درآمد، لحظهٔ «ضربهٔ نهایی» است — نزدیک شو و دکمهٔ فینیشر را درست بزن!',
+      en: 'Field wisdom: whenever your foe is brought to their knees, the FINISHER window opens — get close and strike true!',
+    },
+  ],
+
+  jackal_defeated: [
+    {
+      speaker: 'narrator',
+      fa: 'شغالِ سپید بر خاک افتاد و گله، پراکنده شد. راه به سوی لانهٔ شیر گشوده شد…',
+      en: 'The White Jackal fell, and the pack scattered. The road to the lion\u2019s lair lay open\u2026',
+    },
+    {
+      speaker: 'rakhsh',
+      fa: '«پرپر!»',
+      en: '*Neigh!*',
+    },
+  ],
+
   pre_lion: [
     {
       speaker: 'narrator',

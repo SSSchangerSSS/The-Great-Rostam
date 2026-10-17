@@ -21,10 +21,11 @@ export class Player {
 
   reset(x, y) {
     this.x = x; this.y = y;            // y = feet position
+    this.yOff = 0;                     // cinematic vertical offset (finisher leap)
     this.vx = 0; this.vy = 0;
     this.onGround = false;
     this.facing = 1;
-    this.state = 'idle';               // idle|run|jump|fall|attack|bow|hurt|dead|mount
+    this.state = 'idle';               // idle|run|jump|fall|attack|bow|hurt|dead|mount|qte|cine
     this.attackPhase = null;           // {name, hitDone}
     this.bowCharge = 0;
     this.invuln = 0;
@@ -35,7 +36,7 @@ export class Player {
   hurtbox() { return { x: this.x - this.w / 2, y: this.y - this.h, w: this.w, h: this.h }; }
 
   hurt(dmg, fromDir, game) {
-    if (this.invuln > 0 || this.state === 'dead') return;
+    if (this.invuln > 0 || this.state === 'dead' || this.state === 'qte' || this.state === 'cine') return;
     this.hp -= dmg;
     this.invuln = 1.1;
     this.vx = -fromDir * 260;
@@ -93,8 +94,7 @@ export class Player {
       if (e.dead) continue;
       if (rectsOverlap(box, e.hurtbox())) {
         const dmg = this.attackPhase.name === 'attack3' ? 4 : 2;
-        e.hurt(dmg, this.facing, this.game);
-        hitAny = true;
+        if (e.hurt(dmg, this.facing, this.game) !== false) hitAny = true;
       }
     }
     if (hitAny) {
@@ -107,6 +107,8 @@ export class Player {
 
   // ---------- per-frame ----------
   update(dt, world, input) {
+    // frozen during finisher QTE & cinematic — rigs are driven by the play state
+    if (this.state === 'qte' || this.state === 'cine') return;
     if (this.invuln > 0) this.invuln -= dt;
     if (this.rakhshCd > 0) this.rakhshCd = Math.max(0, this.rakhshCd - dt);
     if (this.comboWindow > 0) this.comboWindow -= dt;
@@ -214,7 +216,7 @@ export class Player {
 
   draw(ctx, cam) {
     const hipX = this.x;
-    const hipY = this.y - ROSTAM_HIP_H + (this.mounted ? -26 : 0);
+    const hipY = this.y - ROSTAM_HIP_H + (this.mounted ? -26 : 0) + (this.yOff || 0);
     const pose = this.rig.pose();
     const joints = ROSTAM_RIG.compute(pose, { x: hipX, y: hipY, flip: this.facing, scale: 1 });
     // invulnerability blink
