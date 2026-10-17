@@ -72,9 +72,15 @@ export class World {
     for (const t of this.triggers) {
       if (t.fired || player.x < t.x) continue;
       t.fired = true;
-      if (t.lockArena && this.def.boss) {
-        this.lockArena(this.def.boss.arena.x1, this.def.boss.arena.x2);
-        game.activateBoss();
+      if (t.lockArena) {
+        if (t.lockArena === 'mini' && this.def.miniBoss) {
+          const mb = this.def.miniBoss;
+          this.lockArena(mb.arena.x1, mb.arena.x2);
+          game.activateBoss('mini');
+        } else if (this.def.boss) {
+          this.lockArena(this.def.boss.arena.x1, this.def.boss.arena.x2);
+          game.activateBoss('boss');
+        }
       }
       if (t.dialogue) game.dialogue.play(t.dialogue);
     }
@@ -82,41 +88,74 @@ export class World {
 
   update(dt, player) {
     this.time += dt;
-    // arrow pickups
+    // pickups: arrows & healing hearts (mini-boss trophy)
     for (const pk of this.pickups) {
       if (pk.taken) continue;
       if (Math.abs(player.x - pk.x) < 30 && Math.abs(player.y - pk.y) < 50) {
         pk.taken = true;
-        player.arrows = Math.min(player.maxArrows, player.arrows + 4);
-        this.game.audio.play('ui');
-        this.game.particles.burst(pk.x, pk.y, 8, { speed: 70, life: 0.4, size: 2.6, color: '#e8dcc8', glow: true });
+        if (pk.heart) {
+          player.hp = Math.min(player.maxHp, player.hp + 2);
+          this.game.audio.play('heal');
+          this.game.particles.burst(pk.x, pk.y, 12, { speed: 80, life: 0.5, size: 3, color: '#e05545', glow: true });
+        } else {
+          player.arrows = Math.min(player.maxArrows, player.arrows + 4);
+          this.game.audio.play('ui');
+          this.game.particles.burst(pk.x, pk.y, 8, { speed: 70, life: 0.4, size: 2.6, color: '#e8dcc8', glow: true });
+        }
         this.game.hud.sync(player);
       }
     }
   }
 
+  spawnHeart(x) {
+    this.pickups.push({ x, y: this.groundY - 60, heart: true, taken: false });
+  }
+
   drawProps(ctx, cam) {
     const gy = this.groundY;
+    const cullW = (this.game.viewW || 1280) / (cam.zoom || 1);
     // ruins columns (parallax 1 — world space) with slight depth offset
     for (const pr of this.props) {
       const x = pr.x - cam.offsetX;
-      if (x < -120 || x > (this.game.viewW || 1280) + 120) continue;
+      if (x < -cullW * 0.2 || x > cullW + cullW * 0.2) continue;
       if (pr.type === 'column') paintColumn(ctx, pr.x, gy, pr.broken ? 90 : 150 + pr.seed * 8, pr.seed);
       else if (pr.type === 'shrub') paintShrub(ctx, pr.x, gy, pr.seed);
       else if (pr.type === 'rock') paintRock(ctx, pr.x, gy, pr.scale || 1);
     }
     for (const bx of this.braziers) {
       const x = bx - cam.offsetX;
-      if (x < -80 || x > (this.game.viewW || 1280) + 80) continue;
+      if (x < -80 || x > cullW + 80) continue;
       paintBrazier(ctx, bx, gy, this.time);
     }
     // arrow pickups (floating, gently bobbing)
     for (const pk of this.pickups) {
       if (pk.taken) continue;
       const x = pk.x - cam.offsetX;
-      if (x < -40 || x > (this.game.viewW || 1280) + 40) continue;
+      if (x < -40 || x > cullW + 40) continue;
       const bob = Math.sin(this.time * 3 + pk.x) * 5;
       const y = pk.y + bob - cam.offsetY;
+      if (pk.heart) {
+        // healing heart — the fallen alpha's trophy
+        ctx.save();
+        ctx.translate(x, y);
+        const s = 1 + Math.sin(this.time * 5 + pk.x) * 0.08;
+        ctx.scale(s, s);
+        ctx.fillStyle = 'rgba(224,85,69,0.12)';
+        ctx.beginPath(); ctx.arc(0, 0, 18, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#d8503f';
+        ctx.beginPath();
+        ctx.moveTo(0, 9);
+        ctx.bezierCurveTo(-11, 1, -9, -8, -4, -8);
+        ctx.bezierCurveTo(-1.5, -8, 0, -5.5, 0, -4);
+        ctx.bezierCurveTo(0, -5.5, 1.5, -8, 4, -8);
+        ctx.bezierCurveTo(9, -8, 11, 1, 0, 9);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,255,0.35)';
+        ctx.beginPath(); ctx.ellipse(-3.4, -3.6, 2.1, 1.4, -0.5, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
+        continue;
+      }
       ctx.save();
       ctx.translate(x, y);
       ctx.rotate(-0.5);

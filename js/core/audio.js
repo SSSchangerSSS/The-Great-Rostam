@@ -81,6 +81,22 @@ export class AudioSys {
                         setTimeout(() => this.tone({ freq: f, type: 'triangle', dur: 0.35, vol: 0.3 }), i * 140)); break;
       case 'defeat':  [392, 330, 262, 196].forEach((f, i) =>
                         setTimeout(() => this.tone({ freq: f, type: 'sawtooth', dur: 0.4, vol: 0.25 }), i * 180)); break;
+      // ---- finisher QTE ----
+      case 'qteReady':   this.tone({ freq: 520, freqEnd: 780, type: 'triangle', dur: 0.18, vol: 0.3 });
+                         this.tone({ freq: 780, freqEnd: 1040, type: 'triangle', dur: 0.22, vol: 0.2 }); break;
+      case 'qteGood':    this.tone({ freq: 880, freqEnd: 1180, type: 'sine', dur: 0.16, vol: 0.34 }); break;
+      case 'qtePerfect': this.tone({ freq: 880, type: 'sine', dur: 0.3, vol: 0.3 });
+                         this.tone({ freq: 1320, type: 'sine', dur: 0.34, vol: 0.24 });
+                         this.tone({ freq: 1760, type: 'sine', dur: 0.36, vol: 0.14 }); break;
+      case 'qteMiss':    this.tone({ freq: 160, freqEnd: 80, type: 'sawtooth', dur: 0.24, vol: 0.4 }); break;
+      case 'slam':       this.tone({ freq: 70, freqEnd: 28, type: 'sine', dur: 0.8, vol: 0.85 });
+                         this.noise({ dur: 0.5, vol: 0.6, filterFreq: 900, filterEnd: 60 });
+                         this.tone({ freq: 210, freqEnd: 40, type: 'triangle', dur: 0.4, vol: 0.4 }); break;
+      case 'enrage':     this.tone({ freq: 130, freqEnd: 420, type: 'sawtooth', dur: 0.55, vol: 0.4 });
+                         this.noise({ dur: 0.5, vol: 0.3, filterFreq: 300, filterEnd: 1400, type: 'bandpass' }); break;
+      case 'howl':       this.tone({ freq: 480, freqEnd: 620, type: 'sawtooth', dur: 0.5, vol: 0.22 });
+                         this.tone({ freq: 484, freqEnd: 300, type: 'triangle', dur: 0.6, vol: 0.16 }); break;
+      case 'heal':       this.tone({ freq: 660, freqEnd: 990, type: 'sine', dur: 0.2, vol: 0.28 }); break;
     }
   }
 }

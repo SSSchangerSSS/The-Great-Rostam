@@ -2,9 +2,10 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<meta name="theme-color" content="#0d0a14" />
 <title>The Great Rostam ⚔️ — A Shahnameh Action Game</title>
-<meta name="description" content="An epic 2D action game inspired by Rostam of Shahnameh. Pure HTML5 + JavaScript — playable in your browser." />
+<meta name="description" content="An epic 2D action game inspired by Rostam of Shahnameh. Pure HTML5 + JavaScript — mobile-first, playable in your browser." />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&family=Vazirmatn:wght@400;700;900&display=swap" rel="stylesheet" />
@@ -38,9 +39,63 @@
         <div id="dialogue-speaker"></div>
         <div id="dialogue-fa" dir="rtl"></div>
         <div id="dialogue-en"></div>
-        <div id="dialogue-hint">▾ Z / Click</div>
+        <div id="dialogue-hint">▾ Z / tap</div>
       </div>
     </div>
+
+    <!-- ===== Touch controls (mobile-first) ===== -->
+    <div id="touch-ui" class="layer hidden">
+      <div class="tc-left">
+        <button class="tbtn big" id="tb-left" aria-label="left">◀</button>
+        <button class="tbtn big" id="tb-right" aria-label="right">▶</button>
+      </div>
+      <div class="tc-right">
+        <button class="tbtn" id="tb-bow" aria-label="bow">🏹</button>
+        <button class="tbtn" id="tb-mount" aria-label="rakhsh">🐎</button>
+        <button class="tbtn big" id="tb-attack" aria-label="attack">⚔</button>
+        <button class="tbtn big" id="tb-jump" aria-label="jump">⤒</button>
+      </div>
+      <div id="tc-sys">
+        <button class="sysbtn" id="tb-pause" aria-label="pause">⏸</button>
+        <button class="sysbtn" id="tb-mute" aria-label="mute">🔊</button>
+        <button class="sysbtn" id="tb-fs" aria-label="fullscreen">⛶</button>
+      </div>
+    </div>
+
+    <!-- ===== Finisher offer (boss staggered) ===== -->
+    <div id="finish-offer" class="layer hidden">
+      <div id="finish-banner">
+        <div class="fb-main">⚔ ضربهٔ نهایی! ⚔</div>
+        <div class="fb-sub">FINISHER — نزدیک شو و بزن!</div>
+      </div>
+      <button id="finish-btn">⚔ FINISH · فینیشر</button>
+    </div>
+
+    <!-- ===== QTE overlay (God of War style) ===== -->
+    <div id="qte-overlay" class="layer hidden">
+      <div class="qte-vignette"></div>
+      <div id="qte-stage">
+        <div id="qte-ring"></div>
+        <div id="qte-target"><span id="qte-icon">⚔</span></div>
+        <div id="qte-feedback"></div>
+      </div>
+      <div id="qte-dots"></div>
+      <div id="qte-hint">حلقه که بر هدف نشست، همان دکمه را بزن — press when the ring locks</div>
+      <div id="qte-btns">
+        <button data-act="attack">⚔<small>X</small></button>
+        <button data-act="bow">🏹<small>C</small></button>
+        <button data-act="jump">⤒<small>Z</small></button>
+      </div>
+    </div>
+
+    <!-- ===== Big banner (enrage / finisher title) ===== -->
+    <div id="big-banner" class="hidden"><span id="big-banner-text"></span></div>
+
+    <!-- ===== Screen flash (finisher slam) ===== -->
+    <div id="flash" class="hidden"></div>
+
+    <!-- ===== Rotate hint toast ===== -->
+    <div id="rotate-toast" class="hidden">📱 برای تجربهٔ بهتر، گوشی را بچرخان — rotate for a wider view</div>
 
     <!-- ===== Menus ===== -->
     <div id="title-screen" class="layer menu">
@@ -51,26 +106,26 @@
       <div id="title-trial">Trial I — The Lion · خوانِ اوّل: شیر</div>
       <div id="title-start" class="blink">— PRESS ENTER / اینتر —</div>
       <div id="title-controls">
-        <span>← → Move</span><span>Z Jump</span><span>X Attack</span><span>C Bow</span><span>Shift Rakhsh</span><span>Esc Pause</span>
+        <span>← → Move</span><span>Z Jump</span><span>X Attack</span><span>C Bow</span><span>Shift Rakhsh</span><span>F Finisher</span><span>Esc Pause</span>
       </div>
     </div>
 
     <div id="pause-screen" class="layer menu hidden">
       <h2>PAUSED · توقف</h2>
-      <div class="menu-hint blink">Esc to resume</div>
+      <div class="menu-hint blink" id="pause-hint">Esc / tap to resume</div>
     </div>
 
     <div id="victory-screen" class="layer menu hidden">
       <h2 class="gold">TRIAL COMPLETE</h2>
       <div id="victory-fa">خوانِ اوّل گشوده شد!</div>
       <div id="victory-stats"></div>
-      <div class="menu-hint blink">ENTER — return to title</div>
+      <div class="menu-hint blink">ENTER / tap — return to title</div>
     </div>
 
     <div id="defeat-screen" class="layer menu hidden">
       <h2 class="blood">DEFEAT</h2>
       <div id="defeat-fa">پهلوان به خاک افتاد… اما داستان تمام نشده</div>
-      <div class="menu-hint blink">ENTER — try again</div>
+      <div class="menu-hint blink">ENTER / tap — try again</div>
     </div>
 
     <div id="mute-indicator" class="hidden">🔇 M — sound off</div>

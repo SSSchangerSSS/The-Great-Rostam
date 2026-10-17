@@ -36,8 +36,15 @@ export const LEVELS = {
     enemies: [
       { type: 'jackal', x: 1050, y: GROUND_Y - 40 },
       { type: 'jackal', x: 1500, y: GROUND_Y - 40 },
-      { type: 'jackal', x: 2260, y: GROUND_Y - 40 },
+      { type: 'jackal', x: 1980, y: GROUND_Y - 40 },
     ],
+    // MINI-BOSS — the White Jackal, Pack Alpha (finisher QTE: 2 prompts)
+    miniBoss: {
+      type: 'alpha',
+      x: 2450, y: GROUND_Y - 60,
+      arena: { x1: 2150, x2: 2950 },
+      name: { fa: 'شغالِ سپید — رهبرِ گله', en: 'The White Jackal' },
+    },
     boss: {
       type: 'lion',
       x: 3760, y: GROUND_Y - 60,
@@ -45,6 +52,7 @@ export const LEVELS = {
     },
     triggers: [
       { x: 420, dialogue: 'trial1_hint', once: true },
+      { x: 2150, dialogue: 'pre_jackal', once: true, lockArena: 'mini' },
       { x: 3320, dialogue: 'pre_lion', once: true, lockArena: true },
     ],
     pickupArrows: [

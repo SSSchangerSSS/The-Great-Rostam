@@ -95,6 +95,17 @@ const rostamClips = {
     K(0.5, { legF1: 1.0, legB1: -1.0, armF1: -2.1, armB1: 2.1 }),
     K(1,   { legF1: 0.45, legF2: 0.9, legB1: -0.45, legB2: 0.9, armF1: -0.9, armB1: 0.9, spine: 0.1 }),
   ]),
+  // ---- finisher cinematic clips (QTE success) ----
+  finishLeap: new Clip(0.55, false, [
+    K(0,   { armF1: -1.4, armF2: 0.6, armB1: 0.9, legF1: 0.45, legB1: -0.4, spine: -0.12 }),
+    K(0.5, { armF1: -2.7, armF2: 0.5, armB1: 2.3, legF1: 0.95, legF2: 1.15, legB1: -0.95, legB2: 0.85, spine: -0.24, head: -0.15 }),
+    K(1,   { armF1: -2.8, armF2: 0.5, armB1: 2.35, legF1: 1.0, legF2: 1.15, legB1: -1.0, legB2: 0.9, spine: -0.26, head: -0.18 }),
+  ]),
+  finishSlam: new Clip(0.42, false, [
+    K(0,    { armF1: -2.8, armF2: 0.5, armB1: 2.35, legF1: 1.0, legF2: 1.15, legB1: -1.0, legB2: 0.9, spine: -0.26, head: -0.18 }),
+    K(0.5,  { armF1: 1.55, armF2: 0.4, armB1: 1.15, legF1: 0.55, legF2: 0.95, legB1: -0.6, legB2: 0.65, spine: 0.46, head: 0.2 }),
+    K(1,    { armF1: 1.3, armF2: 0.4, armB1: 0.9, legF1: 0.5, legF2: 0.8, legB1: -0.5, legB2: 0.55, spine: 0.3, head: 0.1 }),
+  ]),
 };
 
 export const ROSTAM_RIG = new Rig(rostamDef);
@@ -195,6 +206,12 @@ const lionClips = {
     K(0.5, { neck: 0.6, head: 0.4, jaw: 0.6, legFL: 1.0, legBL: -0.8, tail1: 0.5 }),
     K(1,   { neck: 0.85, head: 0.5, jaw: 0.8, legFL: 1.3, legBL: -1.1, legFR: 1.1, legBR: -0.9, tail1: 0.7, tail2: 0.6 }),
   ]),
+  // kneeling, dizzy — the finisher window
+  stagger: new Clip(1.7, true, [
+    K(0,   { legFL: 1.15, legBL: -1.1, legFR: 1.0, legBR: -0.95, neck: 0.5, head: 0.32, jaw: 0.15, tail1: 0.4 }),
+    K(0.5, { legFL: 1.24, legBL: -1.18, legFR: 1.08, legBR: -1.02, neck: 0.6, head: 0.4, jaw: 0.08, tail1: 0.3, tail2: -0.2 }),
+    K(1,   { legFL: 1.15, legBL: -1.1, legFR: 1.0, legBR: -0.95, neck: 0.5, head: 0.32, jaw: 0.15, tail1: 0.4 }),
+  ]),
 };
 
 export const LION_RIG = new Rig(lionDef);
@@ -228,6 +245,18 @@ const jackalClips = {
   die: new Clip(0.5, false, [
     K(0,  {}),
     K(1,  { legF: 1.2, legB: -1.0, neck: 0.8, head: 0.5, tail: 0.6 }),
+  ]),
+  // Pack Alpha extras: howl summon + staggered finisher window
+  howl: new Clip(1.0, false, [
+    K(0,    { neck: 0.1, head: 0.05 }),
+    K(0.3,  { neck: -0.75, head: -0.3, tail: -0.35, legF: -0.2 }),
+    K(0.75, { neck: -0.68, head: -0.26, tail: -0.28, legF: -0.15 }),
+    K(1,    { neck: 0.05, head: 0.0, tail: 0.0 }),
+  ]),
+  stagger: new Clip(1.7, true, [
+    K(0,   { legF: 0.95, legB: -0.9, neck: 0.55, head: 0.35, tail: 0.4 }),
+    K(0.5, { legF: 1.05, legB: -1.0, neck: 0.64, head: 0.42, tail: 0.28 }),
+    K(1,   { legF: 0.95, legB: -0.9, neck: 0.55, head: 0.35, tail: 0.4 }),
   ]),
 };
 

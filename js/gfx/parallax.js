@@ -46,6 +46,7 @@ export class Environment {
     this.worldW = worldWidth;
     this.groundY = groundY;
     this.seed = seed;
+    this.zoom = 1;
     this.far = buildRidge(seed, groundY - 150, 120, 260);
     this.near = buildRidge(seed + 13, groundY - 60, 80, 200);
     this.dunes = buildRidge(seed + 29, groundY - 12, 34, 150);
@@ -63,12 +64,13 @@ export class Environment {
 
   drawSky(ctx, cam, t) {
     const p = this.pal;
+    const W = this.viewW || 1280, H = this.viewH || 720;
     const g = ctx.createLinearGradient(0, 0, 0, this.groundY + 60);
     g.addColorStop(0, p.skyTop);
     g.addColorStop(0.55, p.skyMid);
     g.addColorStop(1, p.skyLow);
     ctx.fillStyle = g;
-    ctx.fillRect(0, 0, this.viewW || 1280, this.viewH || 720);
+    ctx.fillRect(0, 0, W, H);
 
     // stars (night only)
     if (this.stars.length) {
@@ -82,9 +84,9 @@ export class Environment {
       ctx.globalAlpha = 1;
     }
 
-    // sun with glow (drawn against parallax 0.08)
-    const sunX = 980 - cam.x * 0.08;
-    const sunY = 190;
+    // sun with glow (screen-anchored, slight vertical drift with camera)
+    const sunX = (this.viewW || 1280) * 0.72 - cam.x * 0.08;
+    const sunY = Math.min(190, (this.viewH || 720) * 0.3) - (cam.y || 0) * 0.1;
     ctx.fillStyle = p.sunGlow;
     ctx.beginPath(); ctx.arc(sunX, sunY, 95, 0, TAU); ctx.fill();
     ctx.fillStyle = p.sun;
@@ -115,42 +117,57 @@ export class Environment {
       ctx.stroke();
     }
 
-    // mountain ridges (two parallax depths)
-    this._ridge(ctx, this.far, p.mountainFar, cam.x * 0.18, 0);
-    this._ridge(ctx, this.near, p.mountainNear, cam.x * 0.34, 0);
+    // mountain ridges (two parallax depths) — anchored to the world vertically,
+    // zoomed about screen center (correct at any viewport height)
+    const z = this.zoom || 1;
+    const camY = cam.y || 0;
+    ctx.save();
+    ctx.translate(W / 2, H / 2);
+    ctx.scale(z, z);
+    ctx.translate(-W / 2, -H / 2);
+    this._ridge(ctx, this.far, p.mountainFar, cam.x * 0.18, 0, camY);
+    this._ridge(ctx, this.near, p.mountainNear, cam.x * 0.34, 0, camY);
     // haze band between ridges and dunes
     ctx.fillStyle = p.haze;
-    ctx.fillRect(0, this.groundY - 130, this.viewW || 1280, 130);
+    ctx.fillRect(0, this.groundY - 130 - camY, W, 130);
+    ctx.restore();
   }
 
-  _ridge(ctx, pts, color, shiftX, shiftY) {
-    const W = this.viewW || 1280;
+  _ridge(ctx, pts, color, shiftX, shiftY, camY = 0) {
+    const W = (this.viewW || 1280) / (this.zoom || 1);
     ctx.fillStyle = color;
     ctx.beginPath();
-    ctx.moveTo(-60, this.groundY + 80);
+    ctx.moveTo(-60, this.groundY + 80 - camY);
     for (const [px, py] of pts) {
       const x = px - shiftX;
       if (x < -120 || x > W + 120) continue;
-      ctx.lineTo(x, py + shiftY);
+      ctx.lineTo(x, py + shiftY - camY);
     }
-    ctx.lineTo(W + 60, this.groundY + 80);
+    ctx.lineTo(W + 60, this.groundY + 80 - camY);
     ctx.closePath();
     ctx.fill();
   }
 
   drawMid(ctx, cam, t) {
     const p = this.pal;
-    // rolling dunes (parallax 0.55)
-    const W = this.viewW || 1280;
+    // rolling dunes (parallax 0.55) — world-anchored vertically, zoomed about center
+    const z = this.zoom || 1;
+    const camY = cam.y || 0;
+    const W0 = this.viewW || 1280, H0 = this.viewH || 720;
+    const W = W0 / z;
+    ctx.save();
+    ctx.translate(W0 / 2, H0 / 2);
+    ctx.scale(z, z);
+    ctx.translate(-W0 / 2, -H0 / 2);
     ctx.fillStyle = p.dune;
     ctx.beginPath();
-    ctx.moveTo(-60, this.groundY + 60);
+    ctx.moveTo(-60, this.groundY + 60 - camY);
     for (const [px, py] of this.dunes) {
       const x = px - cam.x * 0.55;
       if (x < -120 || x > W + 120) continue;
-      ctx.lineTo(x, py);
+      ctx.lineTo(x, py - camY);
     }
-    ctx.lineTo(W + 60, this.groundY + 60);
+    ctx.lineTo(W + 60, this.groundY + 60 - camY);
     ctx.closePath();
     ctx.fill();
     // lit dune crests
@@ -162,30 +179,34 @@ export class Environment {
       const x1 = ax - cam.x * 0.55, x2 = bx2 - cam.x * 0.55;
       if (x2 < -60 || x1 > W + 60) continue;
       if (by2 < ay) {
-        ctx.beginPath(); ctx.moveTo(x1, ay); ctx.lineTo(x2, by2); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(x1, ay - camY); ctx.lineTo(x2, by2 - camY); ctx.stroke();
       }
     }
+    ctx.restore();
   }
 
   drawGround(ctx, cam) {
     const p = this.pal;
     const W = this.viewW || 1280;
-    const x0 = cam.x, x1 = cam.x + W;
-    // base slab (full parallax — part of the world)
+    const z = cam.zoom || 1;
+    // visible world x-range accounts for cinematic zoom
+    const x0 = cam.x + W / 2 - W / (2 * z);
+    const span = W / z;
+    // base slab (full parallax — part of the world); extra depth for tall portrait views
     ctx.fillStyle = p.ground;
-    ctx.fillRect(x0 - 20, this.groundY, (x1 - x0) + 40, this.viewH || 720);
+    ctx.fillRect(x0 - 20, this.groundY, span + 40, (this.viewH || 720) * 1.6);
     ctx.fillStyle = p.groundDark;
-    ctx.fillRect(x0 - 20, this.groundY, (x1 - x0) + 40, 5);
+    ctx.fillRect(x0 - 20, this.groundY, span + 40, 5);
     // sand speckles (seeded by world x, drawn only in view)
     const rng = makeRng((Math.floor(x0 / 40)) * 977 + this.seed);
     ctx.fillStyle = p.groundSpeck;
     for (let i = 0; i < 90; i++) {
-      const sx = x0 + rng() * (W + 40) - 20;
+      const sx = x0 + rng() * (span + 40) - 20;
       const sy = this.groundY + 6 + rng() * 100;
       ctx.fillRect(sx, sy, 2 + rng() * 3, 1.6);
     }
   }
 
   // view size cache (set by renderer each frame)
-  setView(w, h) { this.viewW = w; this.viewH = h; }
+  setView(w, h, zoom = 1) { this.viewW = w; this.viewH = h; this.zoom = zoom; }
 }

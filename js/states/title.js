@@ -1,4 +1,4 @@
-// title.js — title state: ambient desert scene behind the DOM overlay
+// title.js — title state: ambient desert scene behind the DOM overlay (adaptive layout)
 import { TAU } from '../core/utils.js';
 import { ROSTAM_RIG, ROSTAM_CLIPS, ROSTAM_HIP_H } from '../content/rigs.js';
 import { RAKHSH_RIG, RAKHSH_CLIPS } from '../content/rigs.js';
@@ -13,6 +13,13 @@ export class TitleState {
     this.game.hud.hide();
     if (!this.env) {
       this.env = this.game.makeAmbientScene();
+    }
+    // touch-friendly start prompt
+    const start = document.getElementById('title-start');
+    if (start) {
+      start.textContent = this.game.isTouch
+        ? '— TAP TO START / برای شروع لمس کن —'
+        : '— PRESS ENTER / اینتر —';
     }
   }
 
@@ -29,17 +36,26 @@ export class TitleState {
 
   draw(ctx) {
     const g = this.game;
-    this.env.setView(g.viewW, g.viewH);
-    this.env.drawSky(ctx, { x: 0, y: 0 }, this.t);
-    this.env.drawMid(ctx, { x: 0, y: 0 }, this.t);
-    this.env.drawGround(ctx, { x: 0, y: 0 });
-    // Rostam & Rakhsh standing together, breathing
-    const idle = ROSTAM_CLIPS.idle.sample((this.t % 2.4) / 2.4);
+    const vw = g.viewW, vh = g.viewH;
+    this.env.setView(vw, vh, 1);
+    // fake camera: slow pan, ground pinned to ~62% of the viewport height
+    const camX = 300 + Math.sin(this.t * 0.05) * 120;
+    const camY = this.env.groundY - vh * 0.62;
+    this.env.drawSky(ctx, { x: camX, y: camY }, this.t);
+    this.env.drawMid(ctx, { x: camX, y: camY }, this.t);
+
+    // Rostam & Rakhsh standing together, breathing (world space)
+    ctx.save();
+    ctx.translate(-camX, -camY);
+    this.env.drawGround(ctx, { x: camX, y: camY, zoom: 1 });
+    const gy = this.env.groundY;
+    const hx = camX + vw * 0.8, hy = gy;
     const horseIdle = RAKHSH_CLIPS.idle.sample((this.t % 3) / 3);
-    const hx = 560, hy = 585;
     const rj = RAKHSH_RIG.compute(horseIdle, { x: hx - 110, y: hy - 6, flip: 1, scale: 1 });
     paintRakhsh(ctx, rj);
+    const idle = ROSTAM_CLIPS.idle.sample((this.t % 2.4) / 2.4);
     const j = ROSTAM_RIG.compute(idle, { x: hx, y: hy - ROSTAM_HIP_H, flip: 1, scale: 1 });
     paintRostam(ctx, j);
+    ctx.restore();
   }
 }

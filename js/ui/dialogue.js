@@ -119,4 +119,12 @@ export class DialogueBox {
     this.done = null;
     if (cb) cb();
   }
+
+  // hard-close (finisher stagger takes priority over flavor dialogue)
+  forceClose() {
+    if (!this.active) return;
+    this.active = false;
+    this.done = null;
+    this.root.classList.add('hidden');
+  }
 }
