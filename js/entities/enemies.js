@@ -13,8 +13,8 @@ import { paintLion, paintJackal } from '../gfx/paint.js';
 
 const GRAV = 2500;
 
-// draw dizzy stars above a staggered boss
-function drawStars(ctx, x, y, t) {
+// draw dizzy stars above a staggered boss (exported — drawn on the fx layer in 2.5D mode)
+export function drawStars(ctx, x, y, t) {
   for (let i = 0; i < 3; i++) {
     const a = t * 3.2 + i * 2.09;
     const sx = x + Math.cos(a) * 26;

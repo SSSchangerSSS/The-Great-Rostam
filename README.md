@@ -1,9 +1,10 @@
-<img src="https://capsule-render.vercel.app/api?type=rect&height=180&color=0:2b0a00,50:8b5a00,100:ffd700&text=THE%20GREAT%20ROSTAM&fontSize=52&fontAlignY=42&desc=A%202D%20Action%20Game%20Inspired%20by%20Shahnameh&descAlignY=62&descSize=16&animation=twinkling" width="100%" />
+<img src="https://capsule-render.vercel.app/api?type=rect&height=180&color=0:2b0a00,50:8b5a00,100:ffd700&text=THE%20GREAT%20ROSTAM&fontSize=52&fontAlignY=42&desc=A%202.5D%20Action%20Game%20Inspired%20by%20Shahnameh&descAlignY=62&descSize=16&animation=twinkling" width="100%" />
 
 <div align="center">
 
 ▶️ **[PLAY NOW — بازی آنلاین](https://ssschangersss.github.io/The-Great-Rostam/)** ◀️
 
+![Three.js](https://img.shields.io/badge/Three.js-2.5D_Toon_Heroes-000000?style=for-the-badge&logo=threedotjs&logoColor=white)
 ![HTML5](https://img.shields.io/badge/HTML5-Canvas-E34F26?style=for-the-badge&logo=html5&logoColor=white)
 ![JavaScript](https://img.shields.io/badge/JavaScript-ES%20Modules-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)
 ![CSS3](https://img.shields.io/badge/CSS3-UI%20Layer-1572B6?style=for-the-badge&logo=css3&logoColor=white)
@@ -15,11 +16,11 @@
 
 <div align="center">
 
-> **EN** — An epic 2D action game about **Rostam**, the legendary hero of Ferdowsi's *Shahnameh*.
-> Trial I (**The Lion**) is fully playable in your browser — on **desktop or phone** — with **100% procedural graphics, zero image assets**.
+> **EN** — An epic **2.5D** action game about **Rostam**, the legendary hero of Ferdowsi's *Shahnameh*.
+> **Real 3D toon-shaded heroes** (Three.js) fight inside a **hand-painted 2D world** — Trial I (**The Lion**) is fully playable in your browser, on **desktop or phone**, with **100% procedural graphics, zero image assets**.
 
-> **FA** — یک بازی اکشن دوبعدی حماسی درباره‌ی **رستم**، پهلوان شاهنامه‌ی فردوسی.
-> خوانِ اوّل (**شیر**) به‌طور کامل در مرورگر قابل بازی است — روی **دسکتاپ و موبایل** — با **تمام گرافیک پروسیجرال، بدون هیچ فایل تصویری**.
+> **FA** — یک بازی اکشن **دو‌ونیم‌بعدی** حماسی درباره‌ی **رستم**، پهلوان شاهنامه‌ی فردوسی.
+> قهرمان‌ها **سه‌بعدیِ واقعی** با سایه‌زنی کارتونی (Three.js) در دنیای دوبعدیِ نقاشی‌شده می‌جنگند — خوانِ اوّل (**شیر**) به‌طور کامل در مرورگر قابل بازی است — روی **دسکتاپ و موبایل** — با **تمام گرافیک پروسیجرال، بدون هیچ فایل تصویری**.
 
 </div>
 
@@ -39,8 +40,10 @@
 
 ## ⚔️ What's inside | چه چیزی ساخته شده
 
-- 🦴 **Procedural skeletal rig system v2 (“Flash-school” animation)** — every character is animated bone-by-bone with per-key easing: anticipation coils → whip strikes → impact holds → follow-through settles, plus root-motion weight (_ox/_oy), squash & stretch, and secondary motion (beard & tiger-pelt sway with velocity)
-- ⚔️ **Shank-inspired combat** — lunging 3-hit mace combo, dodge **roll with i-frames** (afterimage trail), air attack with hit-bounce, enemy hitstun & knockback friction, Shank-style impact sparks, mace smear trails, hitstop, screen shake and a chain hit-counter
+- 🧊 **2.5D renderer (Three.js)** — Rostam, Rakhsh, the Lion and every jackal are **real 3D low-poly bodies** (cel-shaded toon materials, warm dusk lighting + rim light) rendered on a transparent WebGL layer **pixel-aligned above the hand-painted 2D parallax world** — 3D heroes, 2D environment, 60fps on mobile (~80 draw calls)
+- 🦴 **Flash-school skeletal animation, now in 3D** — the same hand-authored keyframe clips (anticipation → whip strike → impact hold → follow-through, per-key easing, root-motion weight) drive the 3D bone rigs 1:1, plus squash & stretch, death topple, roll tumble, white hit-flash, and velocity-driven pelt sway
+- 📸 **Baked animation frames (فریم‌های ذخیره‌شده)** — at boot every clip of every character is rendered once into a cached frame atlas: it powers the **ghost afterimages** (roll / finisher leap) and unlocks a **baked-sprite fallback mode** that auto-engages on weak devices so the game stays smooth everywhere
+- ⚔️ **Shank-inspired combat** — lunging 3-hit mace combo, dodge **roll with i-frames**, air attack with hit-bounce, enemy hitstun & knockback friction (no ice-skating!), impact sparks, mace smear trails, hitstop, screen shake and a chain hit-counter
 - 🎯 **Finisher QTE system (God of War style)** — bring a mini-boss or boss below its HP threshold and it **staggers**: approach and hit **F** (or the FINISH button) to enter a slow-motion ring-timed button sequence. Succeed → a cinematic leap-and-slam kill with afterimages. Miss twice → the beast **ENRAGES** (heals, red aura, faster & meaner)
 - 🐺 **Mini-boss + Boss** — the **White Jackal, Pack Alpha** (summons its pack, triple-lunge chains) and the **Lion of Trial I** (pounce, claw combos, half-health roar shockwave) — each with its own finisher length & arena
 - 📱 **Mobile-first design** — full-viewport adaptive canvas (any aspect ratio, DPR-aware), on-screen thumb controls (move / jump / mace / bow / roll / Rakhsh), coyote-time + jump buffering for forgiving touch play, tap-to-advance dialogue, fullscreen button, haptic feedback, one-time rotate hint
@@ -100,24 +103,29 @@ python -m http.server 8000
 
 ```
 The-Great-Rostam/
-├── index.html                  # canvas + DOM UI layers (touch pads, QTE overlay, offer UI)
+├── index.html                  # 3-layer stage: 2D world canvas → WebGL heroes → fx canvas + DOM UI
 ├── css/style.css               # mobile-first responsive UI (safe-area, adaptive HUD)
 ├── js/
+│   ├── lib/
+│   │   └── three.min.js        # Three.js r128 (vendored, offline-friendly)
 │   ├── main.js                 # entry point + test hooks
 │   ├── qte.js                  # ⚔ finisher system: offer → ring QTE → cinematic slam / enrage
 │   ├── core/
-│   │   ├── game.js             # loop, state machine, adaptive viewport, slow-mo timescale
+│   │   ├── game.js             # loop, state machine, adaptive viewport, layer orchestration
 │   │   ├── input.js            # action-mapped keyboard + virtual touch buttons
-│   │   ├── camera.js           # smooth follow, shake, cinematic zoom & focus
+│   │   ├── camera.js           # smooth follow, shake, cinematic zoom (mirrored into WebGL)
 │   │   ├── audio.js            # procedural WebAudio SFX (incl. QTE + slam)
 │   │   └── utils.js            # math, easing, seeded RNG
 │   ├── gfx/
-│   │   ├── rig.js              # skeletal animation engine (bones/clips/animator)
-│   │   ├── paint.js            # character & prop painters (+ white-alpha & enraged variants)
-│   │   ├── particles.js        # pooled particle system
-│   │   └── parallax.js         # world-anchored parallax environments, any aspect
+│   │   ├── gl3d.js             # 🧊 the 2.5D layer: scene, camera mirror, bone adapter,
+│   │   │                       #    frame baker (clip → cached textures), ghosts, sprite fallback
+│   │   ├── models3d.js         # procedural low-poly toon builders (Rostam/Rakhsh/Lion/Jackal)
+│   │   ├── rig.js              # skeletal animation engine (bones/clips/animator/easing)
+│   │   ├── paint.js            # 2D prop painters + legacy no-WebGL fallback painters
+│   │   ├── particles.js        # pooled particle system (fx canvas)
+│   │   └── parallax.js         # world-anchored 2D parallax environments, any aspect
 │   ├── content/
-│   │   ├── rigs.js             # rig + animation clip definitions (finisher leap/slam too)
+│   │   ├── rigs.js             # animation clip definitions (drive both 2D & 3D rigs)
 │   │   ├── dialogues.js        # bilingual scripts (mini-boss + boss)
 │   │   └── levels.js           # data-driven levels: waves, arenas, mini-boss, boss
 │   ├── entities/
@@ -134,7 +142,7 @@ The-Great-Rostam/
 │   └── states/
 │       ├── title.js  ├── play.js  └── results.js
 └── docs/
-    ├── GAME_DESIGN.md          # full design document (finisher & mobile design included)
+    ├── GAME_DESIGN.md          # full design document (finisher, mobile & 2.5D renderer design)
     └── screenshots/            # gameplay captures
 ```
 
@@ -144,6 +152,7 @@ The-Great-Rostam/
 
 - [x] Web engine: rig animation, parallax, physics, dialogue, audio — **موتور وب کامل**
 - [x] Trial I — The Lion (playable!) — **خوان اوّل: شیر**
+- [x] **2.5D upgrade: Three.js toon heroes + baked frame cache** — **قهرمان‌های سه‌بعدی + ذخیرهٔ فریم‌ها**
 - [x] Mini-boss (White Jackal) + **God-of-War-style finisher QTEs** — **ضربه‌های نهایی**
 - [x] **Mobile-first** touch controls + responsive canvas — **کنترل لمسی موبایل**
 - [ ] Trial II — The Burning Desert (night palette ready) — بیابان سوزان

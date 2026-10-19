@@ -46,10 +46,22 @@ html, body {
 }
 
 canvas#game {
+  position: absolute;
+  inset: 0;
   width: 100%; height: 100%;
   display: block;
   image-rendering: auto;
   background: #0d0a14;
+}
+
+/* 2.5D layer stack: painted world → WebGL heroes → 2D combat fx */
+canvas#gl,
+canvas#fx {
+  position: absolute;
+  inset: 0;
+  width: 100%; height: 100%;
+  display: block;
+  pointer-events: none;
 }
 
 .layer {
