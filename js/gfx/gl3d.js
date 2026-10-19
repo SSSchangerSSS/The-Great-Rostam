@@ -10,6 +10,7 @@
 import { GROUND_Y } from '../content/levels.js';
 import { ROSTAM_RIG, ROSTAM_CLIPS, JACKAL_RIG, JACKAL_CLIPS, LION_RIG, LION_CLIPS, RAKHSH_RIG, RAKHSH_CLIPS } from '../content/rigs.js';
 import { buildRostam, buildRakhsh, buildLion, buildJackal, shadowTexture } from './models3d.js';
+import { MeshyModels } from './meshy.js';
 
 const THREE = window.THREE;
 const P2 = Math.PI / 2;
@@ -95,6 +96,26 @@ export class GL3D {
 
     this._camKey = '';
     this._dtSum = 0; this._dtN = 0; this._badStreak = 0;
+    this._dt = 1 / 60;
+
+    // Meshy-AI drop-in models (assets/meshy/<type>.glb) — see docs/MESHY_PROMPTS.md
+    this.meshy = new MeshyModels();
+    this.meshyDone = false;
+    this.meshy.load().then(() => {
+      this.meshyDone = true;
+      if (!Object.keys(this.meshy.sources).length) return;
+      // rebuild live handles so existing entities pick up the AI bodies
+      for (const [ent, h] of Array.from(this.handles)) {
+        this.scene.remove(h.model.root); this.scene.remove(h.shadow);
+        if (h.sprite) this.scene.remove(h.sprite);
+        this.handles.delete(ent);
+      }
+      if (this._rakhsh) {
+        this.scene.remove(this._rakhsh.model.root); this.scene.remove(this._rakhsh.shadow);
+        this._rakhsh = null;
+      }
+    });
+
     this.ok = true;
   }
 
@@ -129,17 +150,24 @@ export class GL3D {
     if (h) return h;
     const type = this._typeOf(ent);
     const def = BUILDERS[type];
-    const model = def.build();
-    model.rig = def.rig;
-    model.clips = def.clips;
     const bs = type === 'jackalA' ? 1.5 : 1;
     const shadow = new THREE.Mesh(
       this._shadowGeo[type],
       new THREE.MeshBasicMaterial({ map: this._shadowTex, transparent: true, depthWrite: false, opacity: 0.9 })
     );
-    this.scene.add(model.root);
     this.scene.add(shadow);
-    h = { type, model, rig: def.rig, clips: def.clips, bs, z: Z[type], shadow, sprite: null, enraged: false, fading: false };
+    // Meshy GLB if provided, else the procedural toon body
+    const mModel = this.meshyDone ? this.meshy.instantiate(type) : null;
+    if (mModel) {
+      this.scene.add(mModel.root);
+      h = { type, model: mModel, meshyMode: true, mixer: mModel.mixer, rig: def.rig, clips: def.clips, bs, z: Z[type], shadow, sprite: null, enraged: false, fading: false };
+    } else {
+      const model = def.build();
+      model.rig = def.rig;
+      model.clips = def.clips;
+      this.scene.add(model.root);
+      h = { type, model, rig: def.rig, clips: def.clips, bs, z: Z[type], shadow, sprite: null, enraged: false, fading: false };
+    }
     this.handles.set(ent, h);
     return h;
   }
@@ -189,27 +217,30 @@ export class GL3D {
   }
 
   // ---------------- per-frame entity sync ----------------
-  _syncEntity(h, ent, play, camC, halfW) {
+  _syncEntity(h, ent, play, camC, halfW, dt) {
     const m = h.model;
     const onScreen = Math.abs(ent.x - camC) < halfW + 280;
     if (!onScreen) { m.root.visible = false; h.shadow.visible = false; if (h.sprite) h.sprite.visible = false; return; }
 
-    // ----- pose (with lion recoil overlay) -----
-    let pose = ent.rig.pose();
-    if (h.type === 'lion' && ent.recoil > 0) {
-      pose = Object.assign({}, pose);
-      pose.neck = (pose.neck || 0) + ent.recoil * 0.55;
-      pose.head = (pose.head || 0) + ent.recoil * 0.3;
-      pose.jaw = (pose.jaw || 0) + ent.recoil * 0.25;
+    // ----- pose (with lion recoil overlay) — procedural bodies only; Meshy GLBs play their own clips -----
+    let pose = null;
+    if (!h.meshyMode) {
+      pose = ent.rig.pose();
+      if (h.type === 'lion' && ent.recoil > 0) {
+        pose = Object.assign({}, pose);
+        pose.neck = (pose.neck || 0) + ent.recoil * 0.55;
+        pose.head = (pose.head || 0) + ent.recoil * 0.3;
+        pose.jaw = (pose.jaw || 0) + ent.recoil * 0.25;
+      }
     }
 
     // ----- root placement (canvas y-down → 3D y-up, feet on the 2D ground) -----
     let rootY, feet3;
     if (h.type === 'rostam') {
       feet3 = GROUND_Y - ent.y - (ent.yOff || 0) + (ent.mounted ? 34 : 0);
-      rootY = feet3 + 52;
+      rootY = feet3 + (h.meshyMode ? 0 : 52);
     } else {
-      rootY = GROUND_Y - ent.y + m.lift;
+      rootY = GROUND_Y - ent.y + (h.meshyMode ? 0 : m.lift);
       feet3 = GROUND_Y - ent.y;
     }
     m.root.position.set(ent.x, rootY, h.z);
@@ -243,10 +274,15 @@ export class GL3D {
       } else this._setFade(h, 1);
     }
 
-    // ----- render: live 3D or baked-sprite fallback -----
+    // ----- render: live 3D (Meshy GLB / procedural) or baked-sprite fallback -----
     if (this.fallback) {
       m.root.visible = m.root.visible && false;
       this._syncSprite(h, ent, pose, feet3);
+    } else if (h.meshyMode) {
+      if (h.sprite) h.sprite.visible = false;
+      m.play(ent.rig ? ent.rig.name : ent.state);
+      h.mixer.update(dt);
+      m.root.visible = m.root.visible !== false;
     } else {
       if (h.sprite) h.sprite.visible = false;
       this.applyPose(m, h.rig, pose);
@@ -410,6 +446,7 @@ export class GL3D {
   render(state, cam, rawDt) {
     if (!this.ok) return;
     const g = this.game;
+    this._dt = Math.max(0.001, rawDt) * (g.timescale != null ? g.timescale : 1);
     this._processBake(g.stateName === 'play' ? 5 : 13);
     this._noteDt(rawDt);
     this.syncCamera(cam);
@@ -424,23 +461,33 @@ export class GL3D {
     const camC = cam.offsetX + g.viewW / 2;
     const halfW = g.viewW / (2 * (cam.zoom || 1));
 
-    this._syncEntity(this._handleFor(play.player), play.player, play, camC, halfW);
+    this._syncEntity(this._handleFor(play.player), play.player, play, camC, halfW, this._dt);
 
     // Rakhsh under the hero when mounted
     if (play.player.mounted && play.rakhshAnim) {
       if (!this._rakhsh) {
         const def = BUILDERS.rakhsh;
-        const model = def.build();
-        model.rig = def.rig; model.clips = def.clips;
         const shadow = new THREE.Mesh(this._shadowGeo.rakhsh,
           new THREE.MeshBasicMaterial({ map: this._shadowTex, transparent: true, depthWrite: false, opacity: 0.9 }));
-        this.scene.add(model.root); this.scene.add(shadow);
-        this._rakhsh = { type: 'rakhsh', model, rig: def.rig, clips: def.clips, bs: 1, z: Z.rakhsh, shadow, sprite: null, enraged: false, fading: false };
+        this.scene.add(shadow);
+        const mm = this.meshyDone ? this.meshy.instantiate('rakhsh') : null;
+        let h;
+        if (mm) {
+          this.scene.add(mm.root);
+          h = { type: 'rakhsh', model: mm, meshyMode: true, mixer: mm.mixer, rig: def.rig, clips: def.clips, bs: 1, z: Z.rakhsh, shadow, sprite: null, enraged: false, fading: false };
+        } else {
+          const model = def.build();
+          model.rig = def.rig; model.clips = def.clips;
+          this.scene.add(model.root);
+          h = { type: 'rakhsh', model, rig: def.rig, clips: def.clips, bs: 1, z: Z.rakhsh, shadow, sprite: null, enraged: false, fading: false };
+        }
+        this._rakhsh = h;
       }
       const p = play.player;
       const h = this._rakhsh;
-      this.applyPose(h.model, h.rig, play.rakhshAnim.pose());
-      h.model.root.position.set(p.x - p.facing * 4, GROUND_Y - p.y + 34, h.z);
+      if (h.meshyMode) { h.model.play('gallop'); h.mixer.update(this._dt); }
+      else this.applyPose(h.model, h.rig, play.rakhshAnim.pose());
+      h.model.root.position.set(p.x - p.facing * 4, GROUND_Y - p.y + (h.meshyMode ? 2 : 34), h.z);
       h.model.flip.rotation.y = p.facing < 0 ? Math.PI : 0;
       h.model.flip.visible = true;
       h.model.squash.scale.set(1, 1, 1);
@@ -455,7 +502,7 @@ export class GL3D {
 
     for (const e of play.enemies) {
       if ((e === play.boss || e === play.miniBoss) && !e.active && !e.dead) continue;
-      this._syncEntity(this._handleFor(e), e, play, camC, halfW);
+      this._syncEntity(this._handleFor(e), e, play, camC, halfW, this._dt);
     }
 
     this._syncGhosts(play);
