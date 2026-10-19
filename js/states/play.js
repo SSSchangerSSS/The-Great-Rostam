@@ -1,8 +1,8 @@
-// play.js — the main gameplay state (now with mini-boss + finisher QTE integration)
+// play.js — the main gameplay state (mini-boss + finisher QTE + 2.5D rendering)
 import { clamp } from '../core/utils.js';
 import { World } from '../world/world.js';
 import { Player } from '../entities/player.js';
-import { Lion, Jackal, WhiteJackal } from '../entities/enemies.js';
+import { Lion, Jackal, WhiteJackal, drawStars } from '../entities/enemies.js';
 import { Arrows } from '../entities/projectiles.js';
 import { Animator } from '../gfx/rig.js';
 import { RAKHSH_RIG, RAKHSH_CLIPS } from '../content/rigs.js';
@@ -53,6 +53,7 @@ export class PlayState {
     g.hud.setTrialLabel(`${this.world.def.name.fa} | ${this.world.def.name.en}`);
     g.hud.sync(this.player);
     g.hud.bossHide();
+    if (g.gl3d && g.gl3d.ok) g.gl3d.clearEntities();   // fresh 3D cast for this run
 
     // intro dialogue
     g.dialogue.play('trial1_intro');
@@ -122,6 +123,7 @@ export class PlayState {
   draw(ctx) {
     const g = this.game;
     const cam = g.camera;
+    const gl = g.gl3d && g.gl3d.ok;
     this.world.env.setView(g.viewW, g.viewH, cam.zoom);
     this.world.env.drawSky(ctx, cam, this.world.time);
     this.world.env.drawMid(ctx, cam, this.world.time);
@@ -130,29 +132,49 @@ export class PlayState {
     cam.apply(ctx);
     this.world.env.drawGround(ctx, cam);
     this.world.drawProps(ctx, cam);
-    // Rakhsh behind player when mounted
-    if (this.player.mounted) {
-      const rj = RAKHSH_RIG.compute(this.rakhshAnim.pose(), {
-        x: this.player.x - this.player.facing * 4, y: this.player.y - 6, flip: this.player.facing, scale: 1,
-      });
-      paintRakhsh(ctx, rj);
+
+    if (gl) {
+      // ---- 2.5D path: characters live on the WebGL layer, combat fx on top ----
+      ctx.restore();
+      const fx = g.fxCtx;
+      if (fx) {
+        fx.save();
+        cam.apply(fx);
+        this.arrows.draw(fx, cam);
+        this.player.drawTrail(fx, cam);   // mace smear — the Flash whip arc
+        for (const e of this.enemies) {
+          if (e.staggered && !e.dead && e.active) drawStars(fx, e.x, e.y - e.h - 18, this.world.time);
+        }
+        g.particles.draw(fx, cam);
+        fx.restore();
+      }
+    } else {
+      // ---- legacy pure-2D path (no WebGL): everything on the main canvas ----
+      if (this.player.mounted) {
+        const rj = RAKHSH_RIG.compute(this.rakhshAnim.pose(), {
+          x: this.player.x - this.player.facing * 4, y: this.player.y - 6, flip: this.player.facing, scale: 1,
+        });
+        paintRakhsh(ctx, rj);
+      }
+      for (const e of this.enemies) {
+        if ((e === this.boss || e === this.miniBoss) && !e.active && !e.dead) continue;
+        e.draw(ctx, cam);
+        if (e.staggered && !e.dead && e.active) drawStars(ctx, e.x, e.y - e.h - 18, this.world.time);
+      }
+      this.arrows.draw(ctx, cam);
+      this.player.drawTrail(ctx, cam);
+      this.player.draw(ctx, cam);
+      g.particles.draw(ctx, cam);
+      ctx.restore();
     }
-    for (const e of this.enemies) {
-      if ((e === this.boss || e === this.miniBoss) && !e.active && !e.dead) continue;
-      e.draw(ctx, cam);
-    }
-    this.arrows.draw(ctx, cam);
-    this.player.drawTrail(ctx, cam);   // mace smear — the Flash whip arc
-    this.player.draw(ctx, cam);
-    g.particles.draw(ctx, cam);
-    ctx.restore();
 
     // ambient foreground dust drifting toward camera
-    ctx.fillStyle = 'rgba(220,180,130,0.05)';
+    const dustCtx = gl && g.fxCtx ? g.fxCtx : ctx;
+    dustCtx.fillStyle = 'rgba(220,180,130,0.05)';
     for (let i = 0; i < 14; i++) {
       const x = (i * 173 + this.world.time * (12 + i * 2)) % (g.viewW + 60) - 30;
       const y = 200 + ((i * 97) % 400) + Math.sin(this.world.time * 0.7 + i) * 24;
-      ctx.fillRect(x, y, 3, 3);
+      dustCtx.fillRect(x, y, 3, 3);
     }
   }
 }

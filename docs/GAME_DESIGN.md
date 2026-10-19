@@ -150,13 +150,16 @@ Systemic juice layered on top / آبه‌سازی سیستمی روی آن:
 
 | Item | Decision |
 |---|---|
-| Stack / پشته | **Pure HTML5 + JavaScript (ES modules) + CSS** — zero frameworks, zero build tools |
-| Rendering | Canvas 2D with an **adaptive logical viewport** (height-locked ≈720, min width 780, DPR-aware) — any aspect from phone portrait to ultrawide; DOM/CSS layer for HUD, dialogue, QTE and menus |
-| Graphics | **100% procedural** — skeletal rig animation (`js/gfx/rig.js`), code-drawn characters/props (`paint.js`), seeded world-anchored parallax; **no image assets** |
+| Stack / پشته | **HTML5 + JavaScript (ES modules) + CSS + Three.js r128 (vendored)** — zero build tools |
+| Rendering | **2.5D three-layer pipeline**: ① Canvas 2D painted world (parallax, ground, props) → ② transparent **WebGL layer with real 3D toon-shaded character bodies** (Three.js, cel-shaded, warm dusk key + cool rim light) → ③ Canvas 2D combat fx (arrows, mace smear, particles, stagger stars). The orthographic WebGL camera **mirrors the 2D camera 1:1** (same offsets, shake, cinematic zoom) so 3D feet stand exactly on the painted ground line at any aspect/DPR |
+| 3D characters | Procedural low-poly builders (`models3d.js`) — hierarchical flat bone groups driven by the same Flash-school keyframe clips: `Rig.compute()` joints → `bone.position = (jx, −jy)`, `bone.rotation.z = π/2 − angle` (canvas y-down ↔ world y-up). Squash & stretch, death topple, roll tumble, hit-flash emissive, enrage tint, corpse fade |
+| Baked frames | At boot every clip of every character is rendered off-screen once into cached canvas textures (`gl3d.js` baker). Used for **ghost afterimages** (roll / finisher leap) and as an automatic **baked-sprite fallback mode** (engages after sustained <27fps) so weak devices stay smooth |
+| Graphics | **100% procedural** — no image assets anywhere; code-drawn 2D world + code-built 3D bodies + procedural pelt/shadow textures |
 | Audio | Procedural WebAudio synthesis (`audio.js`) — no audio files |
-| Architecture | Modular ES modules: `core/` (loop, input, camera, audio), `gfx/`, `entities/`, `world/`, `ui/`, `states/`, `content/`, plus `qte.js` (the finisher engine) |
-| Physics | Custom feet-based AABB with pass-through platforms (`world.js`) |
+| Architecture | Modular ES modules: `core/` (loop, input, camera, audio), `gfx/` (incl. `gl3d.js`, `models3d.js`), `entities/`, `world/`, `ui/`, `states/`, `content/`, plus `qte.js` (the finisher engine) |
+| Physics | Custom feet-based AABB with pass-through platforms (`world.js`); knockback always decays with exponential friction (no skating) |
 | Mobile | **Mobile-first**: coarse-pointer detection, virtual thumb pads (multi-touch pointer events), tap-to-advance, safe-area insets, fullscreen toggle, haptics (`navigator.vibrate`), one-time rotate hint |
+| Perf budget | ≤ ~85 draw calls, ≤ ~6k triangles live scene, DPR clamp ×2, blob-shadow sprites, no shadow maps — 60fps on mid-range phones measured |
 | Save | `localStorage` trial-completion flags |
 | Distribution | GitHub Pages (live at `/The-Great-Rostam/`), runs in any modern browser |
 | Target platforms | Desktop & **mobile browsers (touch-first)**; gamepad planned |
@@ -165,10 +168,11 @@ Systemic juice layered on top / آبه‌سازی سیستمی روی آن:
 1. **M1 — Web engine:** rig animation, parallax, physics, dialogue, procedural audio ✅
 2. **M2 — Trial I complete (playable):** The Lion boss, Rakhsh mount, bow, HUD, results flow ✅
 3. **M2.5 — Finishers & mobile:** White Jackal mini-boss, **God-of-War-style finisher QTEs**, cinematic slam, enrage, **mobile-first touch controls** ✅
-4. **M3 — Trials II–III** (night palette already prepared)
-5. **M4 — Trials IV–VII** + final boss: Div-e Sepid
-6. **M5 — Polish:** music layers, gamepad
-7. **M6 — Release:** itch.io + collected feedback
+4. **M2.7 — 2.5D upgrade:** Three.js toon-shaded 3D heroes over the 2D world, frame baking (ghosts + weak-device sprite mode), skate-bug hardening ✅
+5. **M3 — Trials II–III** (night palette already prepared)
+6. **M4 — Trials IV–VII** + final boss: Div-e Sepid
+7. **M5 — Polish:** music layers, gamepad
+8. **M6 — Release:** itch.io + collected feedback
 
 ---
 

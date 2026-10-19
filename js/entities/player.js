@@ -159,7 +159,13 @@ export class Player {
 
   pushGhost(alpha = 0.35) {
     if (this.ghosts.length > 8) this.ghosts.shift();
-    this.ghosts.push({ pose: { ...this.rig.pose() }, x: this.x, y: this.y, facing: this.facing, a: alpha, rot: this.state === 'roll' ? this._rollRot() : 0 });
+    this.ghosts.push({
+      pose: { ...this.rig.pose() },
+      clip: this.rig.name, frame: this.rig.progress,   // for baked-frame ghosts (2.5D)
+      x: this.x, y: this.y, yOff: this.yOff || 0,
+      facing: this.facing, a: alpha,
+      rot: this.state === 'roll' ? this._rollRot() : 0,
+    });
   }
   _rollRot() {
     return this.rollDir * (this.rig.name === 'roll' ? this.rig.progress : 0) * Math.PI * 2;
