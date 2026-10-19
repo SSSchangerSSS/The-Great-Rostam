@@ -107,7 +107,9 @@ The-Great-Rostam/
 ├── css/style.css               # mobile-first responsive UI (safe-area, adaptive HUD)
 ├── js/
 │   ├── lib/
-│   │   └── three.min.js        # Three.js r128 (vendored, offline-friendly)
+│   │   ├── three.min.js        # Three.js r128 (vendored, offline-friendly)
+│   │   ├── GLTFLoader.js       # GLB loading for Meshy drop-in models
+│   │   └── SkeletonUtils.js    # skinned-mesh cloning (one mixer per entity)
 │   ├── main.js                 # entry point + test hooks
 │   ├── qte.js                  # ⚔ finisher system: offer → ring QTE → cinematic slam / enrage
 │   ├── core/
@@ -119,6 +121,8 @@ The-Great-Rostam/
 │   ├── gfx/
 │   │   ├── gl3d.js             # 🧊 the 2.5D layer: scene, camera mirror, bone adapter,
 │   │   │                       #    frame baker (clip → cached textures), ghosts, sprite fallback
+│   │   ├── meshy.js            # 🎨 Meshy-AI drop-in layer: assets/meshy/<type>.glb replaces
+│   │   │                       #    the procedural body automatically (scale/face/clip mapping)
 │   │   ├── models3d.js         # procedural low-poly toon builders (Rostam/Rakhsh/Lion/Jackal)
 │   │   ├── rig.js              # skeletal animation engine (bones/clips/animator/easing)
 │   │   ├── paint.js            # 2D prop painters + legacy no-WebGL fallback painters
@@ -143,16 +147,30 @@ The-Great-Rostam/
 │       ├── title.js  ├── play.js  └── results.js
 └── docs/
     ├── GAME_DESIGN.md          # full design document (finisher, mobile & 2.5D renderer design)
+    ├── MESHY_PROMPTS.md        # 🎨 ready-to-paste Meshy prompts for every character
     └── screenshots/            # gameplay captures
 ```
 
 **Add a new trial in 3 steps:** a new entry in `levels.js` → a new palette in `parallax.js` → new dialogue in `dialogues.js`. Bosses declare their finisher in the level data (`finisherPrompts`, threshold) — the QTE engine handles the rest.
+
+## 🎨 Meshy AI Models — مدل‌های سه‌بعدی هوش مصنوعی
+
+Want AI-generated 3D characters instead of (or alongside) the procedural toon bodies? The game **auto-discovers** GLB files dropped into `assets/meshy/` — no code changes:
+
+```
+assets/meshy/rostam.glb · rakhsh.glb · lion.glb · jackal.glb · jackalA.glb
+```
+
+Ready-to-paste prompts, recommended settings, free-plan credit budget and troubleshooting live in **[docs/MESHY_PROMPTS.md](docs/MESHY_PROMPTS.md)**. The engine normalizes scale & facing, maps Meshy animation presets onto game clips (fuzzy match), and silently falls back to the procedural bodies when a file is missing or broken.
+
+*3D models generated with [Meshy AI](https://www.meshy.ai) — licensed CC BY 4.0.*
 
 ## 🗺 Roadmap | نقشه راه
 
 - [x] Web engine: rig animation, parallax, physics, dialogue, audio — **موتور وب کامل**
 - [x] Trial I — The Lion (playable!) — **خوان اوّل: شیر**
 - [x] **2.5D upgrade: Three.js toon heroes + baked frame cache** — **قهرمان‌های سه‌بعدی + ذخیرهٔ فریم‌ها**
+- [x] **Meshy-AI drop-in pipeline** (assets/meshy/*.glb → auto-swap) — **پایپ‌لاین مدل‌های هوش مصنوعی**
 - [x] Mini-boss (White Jackal) + **God-of-War-style finisher QTEs** — **ضربه‌های نهایی**
 - [x] **Mobile-first** touch controls + responsive canvas — **کنترل لمسی موبایل**
 - [ ] Trial II — The Burning Desert (night palette ready) — بیابان سوزان
