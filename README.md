@@ -1,10 +1,10 @@
-<img src="https://capsule-render.vercel.app/api?type=rect&height=180&color=0:2b0a00,50:8b5a00,100:ffd700&text=THE%20GREAT%20ROSTAM&fontSize=52&fontAlignY=42&desc=A%202.5D%20Action%20Game%20Inspired%20by%20Shahnameh&descAlignY=62&descSize=16&animation=twinkling" width="100%" />
+<img src="https://capsule-render.vercel.app/api?type=rect&height=180&color=0:2b0a00,50:8b5a00,100:ffd700&text=THE%20GREAT%20ROSTAM&fontSize=52&fontAlignY=42&desc=A%20Frame-by-Frame%20Action%20Game%20Inspired%20by%20Shahnameh&descAlignY=62&descSize=16&animation=twinkling" width="100%" />
 
 <div align="center">
 
 ▶️ **[PLAY NOW — بازی آنلاین](https://ssschangersss.github.io/The-Great-Rostam/)** ◀️
 
-![Three.js](https://img.shields.io/badge/Three.js-2.5D_Toon_Heroes-000000?style=for-the-badge&logo=threedotjs&logoColor=white)
+![Frame-by-Frame](https://img.shields.io/badge/Animation-Frame--by--Frame_Sprite_Sheets-d4a459?style=for-the-badge&logo=airbrush&logoColor=black)
 ![HTML5](https://img.shields.io/badge/HTML5-Canvas-E34F26?style=for-the-badge&logo=html5&logoColor=white)
 ![JavaScript](https://img.shields.io/badge/JavaScript-ES%20Modules-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)
 ![CSS3](https://img.shields.io/badge/CSS3-UI%20Layer-1572B6?style=for-the-badge&logo=css3&logoColor=white)
@@ -16,11 +16,11 @@
 
 <div align="center">
 
-> **EN** — An epic **2.5D** action game about **Rostam**, the legendary hero of Ferdowsi's *Shahnameh*.
-> **Real 3D toon-shaded heroes** (Three.js) fight inside a **hand-painted 2D world** — Trial I (**The Lion**) is fully playable in your browser, on **desktop or phone**, with **100% procedural graphics, zero image assets**.
+> **EN** — An epic **frame-by-frame** action game about **Rostam**, the legendary hero of Ferdowsi's *Shahnameh*.
+> Every hero and beast is a set of **hand-painted sprite-sheet frames** (no skeletal rigging at runtime) fighting inside a **hand-painted 2D world** — Trial I (**The Lion**) is fully playable in your browser, on **desktop or phone**, at a locked **60fps**.
 
-> **FA** — یک بازی اکشن **دو‌ونیم‌بعدی** حماسی درباره‌ی **رستم**، پهلوان شاهنامه‌ی فردوسی.
-> قهرمان‌ها **سه‌بعدیِ واقعی** با سایه‌زنی کارتونی (Three.js) در دنیای دوبعدیِ نقاشی‌شده می‌جنگند — خوانِ اوّل (**شیر**) به‌طور کامل در مرورگر قابل بازی است — روی **دسکتاپ و موبایل** — با **تمام گرافیک پروسیجرال، بدون هیچ فایل تصویری**.
+> **FA** — یک بازی اکشن **فریم‌به‌فریم** حماسی درباره‌ی **رستم**، پهلوان شاهنامه‌ی فردوسی.
+> قهرمان‌ها و هیولاها **انیمیشن فریم‌به‌فریم** با شیت‌های نقاشی‌شدهٔ دستی هستند (بدون ریگ‌بندی در زمان اجرا) و در دنیای دوبعدیِ نقاشی‌شده می‌جنگند — خوانِ اوّل (**شیر**) به‌طور کامل در مرورگر قابل بازی است — روی **دسکتاپ و موبایل** — با قفل **۶۰ فریم‌برثانیه**.
 
 </div>
 
@@ -40,9 +40,8 @@
 
 ## ⚔️ What's inside | چه چیزی ساخته شده
 
-- 🧊 **2.5D renderer (Three.js)** — Rostam, Rakhsh, the Lion and every jackal are **real 3D low-poly bodies** (cel-shaded toon materials, warm dusk lighting + rim light) rendered on a transparent WebGL layer **pixel-aligned above the hand-painted 2D parallax world** — 3D heroes, 2D environment, 60fps on mobile (~80 draw calls)
-- 🦴 **Flash-school skeletal animation, now in 3D** — the same hand-authored keyframe clips (anticipation → whip strike → impact hold → follow-through, per-key easing, root-motion weight) drive the 3D bone rigs 1:1, plus squash & stretch, death topple, roll tumble, white hit-flash, and velocity-driven pelt sway
-- 📸 **Baked animation frames (فریم‌های ذخیره‌شده)** — at boot every clip of every character is rendered once into a cached frame atlas: it powers the **ghost afterimages** (roll / finisher leap) and unlocks a **baked-sprite fallback mode** that auto-engages on weak devices so the game stays smooth everywhere
+- 🎞 **Frame-by-frame sprite engine (بدون ریگ‌بندی)** — every character is a library of **pre-drawn sprite-sheet frames** (Rostam ×12 clips, Lion ×8, White Jackal & Jackal ×6, Rakhsh ×2 — ~200 frames). Playback is **progress-locked to the combat state machine**, so hit frames, QTE windows and combo chains stay frame-accurate. White **hit-flash**, **enrage tint**, ghost **afterimages**, squash & stretch and death topple are composited per frame
+- 🖌 **Identity-locked AI art pipeline** — each character has ONE canonical sheet; every other clip is **AI image-edit derived from it**, so the design never drifts off-model. Sheets are chroma-keyed, grid-clustered and feet-anchored by a build script (`scripts/`), then shipped as clean PNG frames
 - ⚔️ **Shank-inspired combat** — lunging 3-hit mace combo, dodge **roll with i-frames**, air attack with hit-bounce, enemy hitstun & knockback friction (no ice-skating!), impact sparks, mace smear trails, hitstop, screen shake and a chain hit-counter
 - 🎯 **Finisher QTE system (God of War style)** — bring a mini-boss or boss below its HP threshold and it **staggers**: approach and hit **F** (or the FINISH button) to enter a slow-motion ring-timed button sequence. Succeed → a cinematic leap-and-slam kill with afterimages. Miss twice → the beast **ENRAGES** (heals, red aura, faster & meaner)
 - 🐺 **Mini-boss + Boss** — the **White Jackal, Pack Alpha** (summons its pack, triple-lunge chains) and the **Lion of Trial I** (pounce, claw combos, half-health roar shockwave) — each with its own finisher length & arena
@@ -103,33 +102,26 @@ python -m http.server 8000
 
 ```
 The-Great-Rostam/
-├── index.html                  # 3-layer stage: 2D world canvas → WebGL heroes → fx canvas + DOM UI
+├── index.html                  # stage: painted 2D world canvas → sprite heroes → fx canvas + DOM UI
 ├── css/style.css               # mobile-first responsive UI (safe-area, adaptive HUD)
 ├── js/
-│   ├── lib/
-│   │   ├── three.min.js        # Three.js r128 (vendored, offline-friendly)
-│   │   ├── GLTFLoader.js       # GLB loading for Meshy drop-in models
-│   │   └── SkeletonUtils.js    # skinned-mesh cloning (one mixer per entity)
 │   ├── main.js                 # entry point + test hooks
 │   ├── qte.js                  # ⚔ finisher system: offer → ring QTE → cinematic slam / enrage
 │   ├── core/
-│   │   ├── game.js             # loop, state machine, adaptive viewport, layer orchestration
+│   │   ├── game.js             # loop, state machine, adaptive viewport, sprite bank boot
 │   │   ├── input.js            # action-mapped keyboard + virtual touch buttons
-│   │   ├── camera.js           # smooth follow, shake, cinematic zoom (mirrored into WebGL)
+│   │   ├── camera.js           # smooth follow, shake, cinematic zoom
 │   │   ├── audio.js            # procedural WebAudio SFX (incl. QTE + slam)
 │   │   └── utils.js            # math, easing, seeded RNG
 │   ├── gfx/
-│   │   ├── gl3d.js             # 🧊 the 2.5D layer: scene, camera mirror, bone adapter,
-│   │   │                       #    frame baker (clip → cached textures), ghosts, sprite fallback
-│   │   ├── meshy.js            # 🎨 Meshy-AI drop-in layer: assets/meshy/<type>.glb replaces
-│   │   │                       #    the procedural body automatically (scale/face/clip mapping)
-│   │   ├── models3d.js         # procedural low-poly toon builders (Rostam/Rakhsh/Lion/Jackal)
-│   │   ├── rig.js              # skeletal animation engine (bones/clips/animator/easing)
-│   │   ├── paint.js            # 2D prop painters + legacy no-WebGL fallback painters
+│   │   ├── sprites.js          # 🎞 frame-by-frame sprite bank: manifest loader, progress-locked
+│   │   │                       #    playback, flash/tint compositing, alias clips (bow/jump subranges)
+│   │   ├── rig.js              # animation state machine (clip names/timing — still drives sprite picks)
+│   │   ├── paint.js            # prop painters + legacy procedural fallback painters
 │   │   ├── particles.js        # pooled particle system (fx canvas)
 │   │   └── parallax.js         # world-anchored 2D parallax environments, any aspect
 │   ├── content/
-│   │   ├── rigs.js             # animation clip definitions (drive both 2D & 3D rigs)
+│   │   ├── rigs.js             # combat-timing clip table (names & durations — sprites follow it)
 │   │   ├── dialogues.js        # bilingual scripts (mini-boss + boss)
 │   │   └── levels.js           # data-driven levels: waves, arenas, mini-boss, boss
 │   ├── entities/
@@ -153,23 +145,24 @@ The-Great-Rostam/
 
 **Add a new trial in 3 steps:** a new entry in `levels.js` → a new palette in `parallax.js` → new dialogue in `dialogues.js`. Bosses declare their finisher in the level data (`finisherPrompts`, threshold) — the QTE engine handles the rest.
 
-## 🎨 Meshy AI Models — مدل‌های سه‌بعدی هوش مصنوعی
+## 🎞 Sprite-Sheet Pipeline — خط تولید شیت‌های فریم‌به‌فریم
 
-Want AI-generated 3D characters instead of (or alongside) the procedural toon bodies? The game **auto-discovers** GLB files dropped into `assets/meshy/` — no code changes:
+Every character's animations are **pre-drawn frames** in `assets/sprites/<char>/<clip>/fN.png` + `manifest.json`. The runtime (`js/gfx/sprites.js`) picks the frame whose normalized progress matches the combat state machine — **no rigging, no skeletal animation at runtime; just a blit**.
 
-```
-assets/meshy/rostam.glb · rakhsh.glb · lion.glb · jackal.glb · jackalA.glb
-```
+How the art is produced (tooling in `scripts/`):
+1. **One canonical sheet** per character is generated first (6-cell grid on flat magenta)
+2. **Every other clip is AI image-edit derived from that canonical sheet** — the character never drifts off-model
+3. A build script chroma-keys the background, wipes grid junk, splits figures (adaptive erosion + valley cuts), feet-anchors frames and emits the manifest
 
-Ready-to-paste prompts, recommended settings, free-plan credit budget and troubleshooting live in **[docs/MESHY_PROMPTS.md](docs/MESHY_PROMPTS.md)**. The engine normalizes scale & facing, maps Meshy animation presets onto game clips (fuzzy match), and silently falls back to the procedural bodies when a file is missing or broken.
+> Optional comeback path: the dormant `assets/meshy/` GLB drop-in loader can still bring AI **3D** models back later — prompts in [docs/MESHY_PROMPTS.md](docs/MESHY_PROMPTS.md).
 
-*3D models generated with [Meshy AI](https://www.meshy.ai) — licensed CC BY 4.0.*
+*Character art AI-generated & AI-edited (z-ai), art-directed for the game's Persian miniature palette.*
 
 ## 🗺 Roadmap | نقشه راه
 
 - [x] Web engine: rig animation, parallax, physics, dialogue, audio — **موتور وب کامل**
 - [x] Trial I — The Lion (playable!) — **خوان اوّل: شیر**
-- [x] **2.5D upgrade: Three.js toon heroes + baked frame cache** — **قهرمان‌های سه‌بعدی + ذخیرهٔ فریم‌ها**
+- [x] ~~2.5D Three.js pass~~ → replaced by frame-by-frame sprite sheets — **جایگزین‌شده با انیمیشن فریم‌به‌فریم**
 - [x] **Meshy-AI drop-in pipeline** (assets/meshy/*.glb → auto-swap) — **پایپ‌لاین مدل‌های هوش مصنوعی**
 - [x] Mini-boss (White Jackal) + **God-of-War-style finisher QTEs** — **ضربه‌های نهایی**
 - [x] **Mobile-first** touch controls + responsive canvas — **کنترل لمسی موبایل**

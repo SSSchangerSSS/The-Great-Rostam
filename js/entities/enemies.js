@@ -167,6 +167,15 @@ export class Jackal {
   }
 
   draw(ctx, cam) {
+    const spr = this.game.sprites;
+    if (spr && spr.ready && spr.has('jackal')) {
+      spr.draw(ctx, 'jackal', this.rig.name, this.rig.progress, this.x, this.y, {
+        facing: this.facing,
+        alpha: this.dead ? Math.max(0, 1 - this.deadT) : 1,
+        flash: Math.max(0, this.flashT || 0) / 0.12,
+      });
+      return;
+    }
     const pose = this.rig.pose();
     const joints = JACKAL_RIG.compute(pose, { x: this.x, y: this.y - 16, flip: this.facing, scale: 1 });
     paintJackal(ctx, joints, this.dead ? Math.max(0, 1 - this.deadT) : 1, { flash: Math.max(0, this.flashT || 0) / 0.12 });
@@ -387,6 +396,23 @@ export class WhiteJackal {
   }
 
   draw(ctx, cam) {
+    const spr = this.game.sprites;
+    if (spr && spr.ready && spr.has('jackalA')) {
+      const alpha = this.dead ? Math.max(0, 1 - this.deadT) : 1;
+      ctx.save();
+      ctx.translate(this.x, this.y);          // scale about the feet
+      ctx.scale(1.5, 1.5);
+      ctx.translate(-this.x, -this.y);
+      spr.draw(ctx, 'jackalA', this.rig.name, this.rig.progress, this.x, this.y, {
+        facing: this.facing,
+        alpha,
+        flash: Math.max(0, this.hurtFlash || 0) / 0.16,
+        tint: this.enraged ? 'red' : null,
+      });
+      ctx.restore();
+      if (this.staggered && !this.dead) drawStars(ctx, this.x, this.y - this.h - 18, this.game.states.play.world.time);
+      return;
+    }
     const pose = this.rig.pose();
     const joints = JACKAL_RIG.compute(pose, { x: this.x, y: this.y - 22, flip: this.facing, scale: 1 });
     const alpha = this.dead ? Math.max(0, 1 - this.deadT) : 1;
@@ -633,6 +659,17 @@ export class Lion {
   }
 
   draw(ctx, cam) {
+    const spr = this.game.sprites;
+    if (spr && spr.ready && spr.has('lion')) {
+      spr.draw(ctx, 'lion', this.rig.name, this.rig.progress, this.x, this.y, {
+        facing: this.facing,
+        alpha: this.dead ? Math.max(0, 1 - this.deadT * 0.35) : 1,
+        flash: Math.max(0, this.hurtFlash || 0) / 0.18,
+        tint: this.enraged ? 'red' : null,
+      });
+      if (this.staggered && !this.dead) drawStars(ctx, this.x, this.y - this.h - 10, this.game.states.play.world.time);
+      return;
+    }
     const pose = this.rig.pose();
     // recoil overlay — head/neck snap toward the incoming blow
     if (this.recoil > 0) {

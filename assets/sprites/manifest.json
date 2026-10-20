@@ -1,0 +1,132 @@
+{
+ "version": 1,
+ "chars": {
+  "rostam": {
+   "h": 126,
+   "clips": {
+    "attack1": {
+     "frames": 3
+    },
+    "attack2": {
+     "frames": 3
+    },
+    "attack3": {
+     "frames": 3
+    },
+    "bow": {
+     "frames": 6
+    },
+    "dead": {
+     "frames": 8
+    },
+    "hurt": {
+     "frames": 3
+    },
+    "idle": {
+     "frames": 3
+    },
+    "jump": {
+     "frames": 3
+    },
+    "land": {
+     "frames": 3
+    },
+    "mount": {
+     "frames": 3
+    },
+    "roll": {
+     "frames": 9
+    },
+    "run": {
+     "frames": 6
+    }
+   }
+  },
+  "rakhsh": {
+   "h": 96,
+   "clips": {
+    "gallop": {
+     "frames": 10
+    },
+    "idle": {
+     "frames": 8
+    }
+   }
+  },
+  "lion": {
+   "h": 102,
+   "clips": {
+    "crouch": {
+     "frames": 6
+    },
+    "die": {
+     "frames": 2
+    },
+    "hurt": {
+     "frames": 6
+    },
+    "pounce": {
+     "frames": 4
+    },
+    "prowl": {
+     "frames": 4
+    },
+    "roar": {
+     "frames": 3
+    },
+    "stagger": {
+     "frames": 11
+    },
+    "swipe": {
+     "frames": 10
+    }
+   }
+  },
+  "jackal": {
+   "h": 58,
+   "clips": {
+    "die": {
+     "frames": 6
+    },
+    "flinch": {
+     "frames": 6
+    },
+    "howl": {
+     "frames": 6
+    },
+    "lunge": {
+     "frames": 5
+    },
+    "run": {
+     "frames": 5
+    },
+    "stagger": {
+     "frames": 8
+    }
+   }
+  },
+  "jackalA": {
+   "h": 78,
+   "clips": {
+    "die": {
+     "frames": 6
+    },
+    "flinch": {
+     "frames": 10
+    },
+    "howl": {
+     "frames": 6
+    },
+    "lunge": {
+     "frames": 6
+    },
+    "run": {
+     "frames": 6
+    },
+    "stagger": {
+     "frames": 10
+    }
+   }
+  }
+ }
+}

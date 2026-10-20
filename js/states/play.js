@@ -151,10 +151,16 @@ export class PlayState {
     } else {
       // ---- legacy pure-2D path (no WebGL): everything on the main canvas ----
       if (this.player.mounted) {
-        const rj = RAKHSH_RIG.compute(this.rakhshAnim.pose(), {
-          x: this.player.x - this.player.facing * 4, y: this.player.y - 6, flip: this.player.facing, scale: 1,
-        });
-        paintRakhsh(ctx, rj);
+        const spr = g.sprites;
+        if (spr && spr.ready && spr.has('rakhsh')) {
+          spr.draw(ctx, 'rakhsh', this.rakhshAnim.name, this.rakhshAnim.progress,
+            this.player.x - this.player.facing * 4, this.player.y - 6, { facing: this.player.facing });
+        } else {
+          const rj = RAKHSH_RIG.compute(this.rakhshAnim.pose(), {
+            x: this.player.x - this.player.facing * 4, y: this.player.y - 6, flip: this.player.facing, scale: 1,
+          });
+          paintRakhsh(ctx, rj);
+        }
       }
       for (const e of this.enemies) {
         if ((e === this.boss || e === this.miniBoss) && !e.active && !e.dead) continue;
