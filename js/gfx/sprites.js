@@ -1,7 +1,7 @@
-// sprites.js v2 — frame-by-frame sprite-SHEET animation layer (NO rigging).
+// sprites.js v3 — frame-by-frame sprite-SHEET animation layer (NO rigging).
 // Every character clip is ONE pre-packed sprite sheet PNG under
 // assets/sprites/<char>/<clip>.png — a 6x5 grid of exactly 30 frames
-// (see manifest.json v2: {sheet, cols, rows, fw, fh, frames, loop}).
+// (see manifest.json v3: {sheet, cols, rows, fw, fh, frames, loop}).
 // Frames are sampled by normalized progress, so combat timing (hit frames,
 // QTE windows, combo pacing) is untouched — only the pixels change.
 //
@@ -10,8 +10,12 @@
 //     opts: { facing, alpha, flash, tint, scale, yOff }
 //
 // ALIAS sub-ranges are FRACTIONS of the clip (0..1), robust to frame counts.
+// Loading is STAGED PER CHARACTER (rostam first) so slow mobile networks get
+// the hero quickly instead of staring at fallback painters for 8MB.
 // If the manifest or a sheet is missing, callers silently fall back to the
 // legacy procedural painters — the game can never break because of assets.
+
+const ASSET_VER = 'v3';   // bump on every sheet rebuild — busts stale caches
 
 const ALIAS = {
   rostam: {
@@ -35,6 +39,7 @@ export class SpriteBank {
     this.data = null;          // manifest chars
     this.imgs = new Map();     // 'char/clip' -> HTMLImageElement (sheet)
     this.promise = null;
+    this.charReady = new Set(); // chars whose sheets are ALL loaded
     this._scratch = null;      // offscreen canvas for flash/tint passes
   }
 
@@ -42,28 +47,32 @@ export class SpriteBank {
     if (this.promise) return this.promise;
     this.promise = (async () => {
       try {
-        const res = await fetch('assets/sprites/manifest.json');
+        const res = await fetch(`assets/sprites/manifest.json?v=${ASSET_VER}`);
         if (!res.ok) throw new Error('manifest ' + res.status);
         const json = await res.json();
-        if ((json.version || 0) < 2) throw new Error('manifest v1 unsupported');
-        const jobs = [];
+        if ((json.version || 0) < 3) throw new Error('manifest v2 unsupported');
         const chars = json.chars || {};
-        for (const char of Object.keys(chars)) {
-          for (const clip of Object.keys(chars[char].clips || {})) {
-            const info = chars[char].clips[clip];
-            if (!info.sheet) continue;
-            jobs.push(new Promise((done) => {
-              const im = new Image();
-              im.onload = () => { this.imgs.set(`${char}/${clip}`, im); done(); };
-              im.onerror = () => done();
-              im.src = `assets/sprites/${char}/${info.sheet}`;
-            }));
+        this.data = chars;
+        // staged per-character loading — the hero lands first
+        const order = ['rostam', 'rakhsh', 'lion', 'jackal', 'jackalA'];
+        for (const char of order) {
+          const info = chars[char];
+          if (!info) continue;
+          const clips = Object.keys(info.clips || {});
+          await Promise.all(clips.map((clip) => new Promise((done) => {
+            const im = new Image();
+            im.onload = () => { this.imgs.set(`${char}/${clip}`, im); done(); };
+            im.onerror = () => done();
+            im.src = `assets/sprites/${char}/${info.clips[clip].sheet}?v=${ASSET_VER}`;
+          })));
+          this.charReady.add(char);
+          if (char === 'rostam') {
+            this.ready = true;
+            console.log('[sprites] rostam sheets ready (staged)');
           }
         }
-        await Promise.all(jobs);
-        this.data = chars;
-        this.ready = true;
-        console.log(`[sprites] v2 bank ready — ${this.imgs.size} sheets, 30 frames/clip`);
+        this.ready = this.charReady.size > 0;
+        console.log(`[sprites] v3 bank ready — ${this.imgs.size} sheets, 30 frames/clip`);
       } catch (e) {
         console.warn('[sprites] asset bank unavailable — legacy painters stay active:', e.message);
         this.ready = false;
@@ -73,7 +82,7 @@ export class SpriteBank {
   }
 
   has(char) {
-    return !!(this.ready && this.data && this.data[char]);
+    return !!(this.data && this.data[char] && this.charReady.has(char));
   }
 
   height(char) {
@@ -124,7 +133,7 @@ export class SpriteBank {
     const t = p >= 0.999 ? 0.999 : (p % 1);
     const idx = info.i0 + Math.min(info.n - 1, Math.floor(t * info.n));
     const sheet = this.imgs.get(`${char}/${info.clip}`);
-    if (!sheet) return false;
+    if (!sheet || !sheet.complete || !sheet.naturalWidth) return false;
 
     const { cols, rows, fw, fh } = info.src;
     const sx = (idx % cols) * fw, sy = Math.floor(idx / cols) * fh;

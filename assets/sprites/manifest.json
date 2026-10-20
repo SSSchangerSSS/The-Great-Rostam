@@ -1,78 +1,15 @@
 {
- "version": 2,
+ "version": 3,
  "chars": {
   "rostam": {
-   "h": 126,
+   "h": 150,
    "clips": {
-    "idle": {
-     "sheet": "idle.png",
-     "cols": 6,
-     "rows": 5,
-     "fw": 123,
-     "fh": 183,
-     "frames": 30,
-     "loop": true
-    },
-    "run": {
-     "sheet": "run.png",
-     "cols": 6,
-     "rows": 5,
-     "fw": 251,
-     "fh": 183,
-     "frames": 30,
-     "loop": true
-    },
-    "jump": {
-     "sheet": "jump.png",
-     "cols": 6,
-     "rows": 5,
-     "fw": 186,
-     "fh": 183,
-     "frames": 30,
-     "loop": false
-    },
-    "land": {
-     "sheet": "land.png",
-     "cols": 6,
-     "rows": 5,
-     "fw": 158,
-     "fh": 183,
-     "frames": 30,
-     "loop": false
-    },
-    "roll": {
-     "sheet": "roll.png",
-     "cols": 6,
-     "rows": 5,
-     "fw": 230,
-     "fh": 180,
-     "frames": 30,
-     "loop": false
-    },
-    "hurt": {
-     "sheet": "hurt.png",
-     "cols": 6,
-     "rows": 5,
-     "fw": 185,
-     "fh": 183,
-     "frames": 30,
-     "loop": false
-    },
-    "dead": {
-     "sheet": "dead.png",
-     "cols": 6,
-     "rows": 5,
-     "fw": 319,
-     "fh": 166,
-     "frames": 30,
-     "loop": false
-    },
     "attack1": {
      "sheet": "attack1.png",
      "cols": 6,
      "rows": 5,
-     "fw": 224,
-     "fh": 183,
+     "fw": 176,
+     "fh": 160,
      "frames": 30,
      "loop": false
     },
@@ -80,8 +17,8 @@
      "sheet": "attack2.png",
      "cols": 6,
      "rows": 5,
-     "fw": 193,
-     "fh": 183,
+     "fw": 176,
+     "fh": 160,
      "frames": 30,
      "loop": false
     },
@@ -89,8 +26,8 @@
      "sheet": "attack3.png",
      "cols": 6,
      "rows": 5,
-     "fw": 238,
-     "fh": 183,
+     "fw": 176,
+     "fh": 160,
      "frames": 30,
      "loop": false
     },
@@ -98,8 +35,53 @@
      "sheet": "bow.png",
      "cols": 6,
      "rows": 5,
-     "fw": 171,
-     "fh": 180,
+     "fw": 128,
+     "fh": 160,
+     "frames": 30,
+     "loop": false
+    },
+    "dead": {
+     "sheet": "dead.png",
+     "cols": 6,
+     "rows": 5,
+     "fw": 208,
+     "fh": 160,
+     "frames": 30,
+     "loop": false
+    },
+    "hurt": {
+     "sheet": "hurt.png",
+     "cols": 6,
+     "rows": 5,
+     "fw": 128,
+     "fh": 160,
+     "frames": 30,
+     "loop": false
+    },
+    "idle": {
+     "sheet": "idle.png",
+     "cols": 6,
+     "rows": 5,
+     "fw": 128,
+     "fh": 160,
+     "frames": 30,
+     "loop": true
+    },
+    "jump": {
+     "sheet": "jump.png",
+     "cols": 6,
+     "rows": 5,
+     "fw": 128,
+     "fh": 160,
+     "frames": 30,
+     "loop": false
+    },
+    "land": {
+     "sheet": "land.png",
+     "cols": 6,
+     "rows": 5,
+     "fw": 128,
+     "fh": 160,
      "frames": 30,
      "loop": false
     },
@@ -107,30 +89,80 @@
      "sheet": "mount.png",
      "cols": 6,
      "rows": 5,
-     "fw": 193,
-     "fh": 183,
+     "fw": 128,
+     "fh": 160,
      "frames": 30,
      "loop": false
+    },
+    "roll": {
+     "sheet": "roll.png",
+     "cols": 6,
+     "rows": 5,
+     "fw": 128,
+     "fh": 160,
+     "frames": 30,
+     "loop": false
+    },
+    "run": {
+     "sheet": "run.png",
+     "cols": 6,
+     "rows": 5,
+     "fw": 128,
+     "fh": 160,
+     "frames": 30,
+     "loop": true
+    }
+   }
+  },
+  "rakhsh": {
+   "h": 114,
+   "clips": {
+    "gallop": {
+     "sheet": "gallop.png",
+     "cols": 6,
+     "rows": 5,
+     "fw": 208,
+     "fh": 152,
+     "frames": 30,
+     "loop": true
+    },
+    "idle": {
+     "sheet": "idle.png",
+     "cols": 6,
+     "rows": 5,
+     "fw": 208,
+     "fh": 152,
+     "frames": 30,
+     "loop": true
     }
    }
   },
   "lion": {
-   "h": 102,
+   "h": 137,
    "clips": {
-    "prowl": {
-     "sheet": "prowl.png",
-     "cols": 6,
-     "rows": 5,
-     "fw": 103,
-     "fh": 148,
-     "frames": 30,
-     "loop": true
-    },
     "crouch": {
      "sheet": "crouch.png",
      "cols": 6,
      "rows": 5,
-     "fw": 255,
+     "fw": 192,
+     "fh": 148,
+     "frames": 30,
+     "loop": false
+    },
+    "die": {
+     "sheet": "die.png",
+     "cols": 6,
+     "rows": 5,
+     "fw": 192,
+     "fh": 148,
+     "frames": 30,
+     "loop": false
+    },
+    "hurt": {
+     "sheet": "hurt.png",
+     "cols": 6,
+     "rows": 5,
+     "fw": 192,
      "fh": 148,
      "frames": 30,
      "loop": false
@@ -139,43 +171,25 @@
      "sheet": "pounce.png",
      "cols": 6,
      "rows": 5,
-     "fw": 220,
+     "fw": 192,
      "fh": 148,
      "frames": 30,
      "loop": false
     },
-    "swipe": {
-     "sheet": "swipe.png",
+    "prowl": {
+     "sheet": "prowl.png",
      "cols": 6,
      "rows": 5,
-     "fw": 263,
+     "fw": 192,
      "fh": 148,
      "frames": 30,
-     "loop": false
+     "loop": true
     },
     "roar": {
      "sheet": "roar.png",
      "cols": 6,
      "rows": 5,
-     "fw": 131,
-     "fh": 148,
-     "frames": 30,
-     "loop": false
-    },
-    "hurt": {
-     "sheet": "hurt.png",
-     "cols": 6,
-     "rows": 5,
-     "fw": 231,
-     "fh": 148,
-     "frames": 30,
-     "loop": false
-    },
-    "die": {
-     "sheet": "die.png",
-     "cols": 6,
-     "rows": 5,
-     "fw": 250,
+     "fw": 192,
      "fh": 148,
      "frames": 30,
      "loop": false
@@ -184,31 +198,31 @@
      "sheet": "stagger.png",
      "cols": 6,
      "rows": 5,
-     "fw": 236,
+     "fw": 192,
      "fh": 148,
      "frames": 30,
      "loop": true
+    },
+    "swipe": {
+     "sheet": "swipe.png",
+     "cols": 6,
+     "rows": 5,
+     "fw": 192,
+     "fh": 148,
+     "frames": 30,
+     "loop": false
     }
    }
   },
   "jackal": {
-   "h": 58,
+   "h": 80,
    "clips": {
-    "run": {
-     "sheet": "run.png",
+    "die": {
+     "sheet": "die.png",
      "cols": 6,
      "rows": 5,
-     "fw": 169,
-     "fh": 87,
-     "frames": 30,
-     "loop": true
-    },
-    "lunge": {
-     "sheet": "lunge.png",
-     "cols": 6,
-     "rows": 5,
-     "fw": 155,
-     "fh": 87,
+     "fw": 152,
+     "fh": 108,
      "frames": 30,
      "loop": false
     },
@@ -216,17 +230,8 @@
      "sheet": "flinch.png",
      "cols": 6,
      "rows": 5,
-     "fw": 163,
-     "fh": 87,
-     "frames": 30,
-     "loop": false
-    },
-    "die": {
-     "sheet": "die.png",
-     "cols": 6,
-     "rows": 5,
-     "fw": 290,
-     "fh": 80,
+     "fw": 152,
+     "fh": 108,
      "frames": 30,
      "loop": false
     },
@@ -234,8 +239,26 @@
      "sheet": "howl.png",
      "cols": 6,
      "rows": 5,
-     "fw": 150,
-     "fh": 87,
+     "fw": 152,
+     "fh": 108,
+     "frames": 30,
+     "loop": true
+    },
+    "lunge": {
+     "sheet": "lunge.png",
+     "cols": 6,
+     "rows": 5,
+     "fw": 152,
+     "fh": 108,
+     "frames": 30,
+     "loop": false
+    },
+    "run": {
+     "sheet": "run.png",
+     "cols": 6,
+     "rows": 5,
+     "fw": 152,
+     "fh": 108,
      "frames": 30,
      "loop": true
     },
@@ -243,31 +266,22 @@
      "sheet": "stagger.png",
      "cols": 6,
      "rows": 5,
-     "fw": 148,
-     "fh": 87,
+     "fw": 152,
+     "fh": 108,
      "frames": 30,
      "loop": true
     }
    }
   },
   "jackalA": {
-   "h": 78,
+   "h": 106,
    "clips": {
-    "run": {
-     "sheet": "run.png",
+    "die": {
+     "sheet": "die.png",
      "cols": 6,
      "rows": 5,
-     "fw": 189,
-     "fh": 117,
-     "frames": 30,
-     "loop": true
-    },
-    "lunge": {
-     "sheet": "lunge.png",
-     "cols": 6,
-     "rows": 5,
-     "fw": 219,
-     "fh": 117,
+     "fw": 168,
+     "fh": 122,
      "frames": 30,
      "loop": false
     },
@@ -275,17 +289,8 @@
      "sheet": "flinch.png",
      "cols": 6,
      "rows": 5,
-     "fw": 198,
-     "fh": 117,
-     "frames": 30,
-     "loop": false
-    },
-    "die": {
-     "sheet": "die.png",
-     "cols": 6,
-     "rows": 5,
-     "fw": 246,
-     "fh": 80,
+     "fw": 168,
+     "fh": 122,
      "frames": 30,
      "loop": false
     },
@@ -293,8 +298,26 @@
      "sheet": "howl.png",
      "cols": 6,
      "rows": 5,
-     "fw": 144,
-     "fh": 117,
+     "fw": 168,
+     "fh": 122,
+     "frames": 30,
+     "loop": true
+    },
+    "lunge": {
+     "sheet": "lunge.png",
+     "cols": 6,
+     "rows": 5,
+     "fw": 168,
+     "fh": 122,
+     "frames": 30,
+     "loop": false
+    },
+    "run": {
+     "sheet": "run.png",
+     "cols": 6,
+     "rows": 5,
+     "fw": 168,
+     "fh": 122,
      "frames": 30,
      "loop": true
     },
@@ -302,31 +325,8 @@
      "sheet": "stagger.png",
      "cols": 6,
      "rows": 5,
-     "fw": 221,
-     "fh": 117,
-     "frames": 30,
-     "loop": true
-    }
-   }
-  },
-  "rakhsh": {
-   "h": 96,
-   "clips": {
-    "idle": {
-     "sheet": "idle.png",
-     "cols": 6,
-     "rows": 5,
-     "fw": 221,
-     "fh": 139,
-     "frames": 30,
-     "loop": true
-    },
-    "gallop": {
-     "sheet": "gallop.png",
-     "cols": 6,
-     "rows": 5,
-     "fw": 193,
-     "fh": 139,
+     "fw": 168,
+     "fh": 122,
      "frames": 30,
      "loop": true
     }
