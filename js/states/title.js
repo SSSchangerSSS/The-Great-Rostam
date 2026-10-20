@@ -1,4 +1,4 @@
-// title.js — title state: ambient desert scene behind the DOM overlay (adaptive layout)
+// title.js — title state: ambient desert scene + sprite-sheet heroes (adaptive layout)
 import { TAU } from '../core/utils.js';
 import { ROSTAM_RIG, ROSTAM_CLIPS, ROSTAM_HIP_H } from '../content/rigs.js';
 import { RAKHSH_RIG, RAKHSH_CLIPS } from '../content/rigs.js';
@@ -44,18 +44,25 @@ export class TitleState {
     this.env.drawSky(ctx, { x: camX, y: camY }, this.t);
     this.env.drawMid(ctx, { x: camX, y: camY }, this.t);
 
-    // Rostam & Rakhsh standing together, breathing (world space)
     ctx.save();
     ctx.translate(-camX, -camY);
     this.env.drawGround(ctx, { x: camX, y: camY, zoom: 1 });
     const gy = this.env.groundY;
     const hx = camX + vw * 0.8, hy = gy;
-    const horseIdle = RAKHSH_CLIPS.idle.sample((this.t % 3) / 3);
-    const rj = RAKHSH_RIG.compute(horseIdle, { x: hx - 110, y: hy - 6, flip: 1, scale: 1 });
-    paintRakhsh(ctx, rj);
-    const idle = ROSTAM_CLIPS.idle.sample((this.t % 2.4) / 2.4);
-    const j = ROSTAM_RIG.compute(idle, { x: hx, y: hy - ROSTAM_HIP_H, flip: 1, scale: 1 });
-    paintRostam(ctx, j);
+    const spr = g.sprites;
+    if (spr && spr.has('rostam') && spr.has('rakhsh')) {
+      // ---- frame-by-frame sprite heroes (30-frame sheets, no rigging) ----
+      spr.draw(ctx, 'rakhsh', 'idle', (this.t % 3) / 3, hx - 128, hy, { facing: 1 });
+      spr.draw(ctx, 'rostam', 'idle', (this.t % 2.4) / 2.4, hx + 18, hy, { facing: 1 });
+    } else {
+      // legacy procedural fallback while sheets stream in
+      const horseIdle = RAKHSH_CLIPS.idle.sample((this.t % 3) / 3);
+      const rj = RAKHSH_RIG.compute(horseIdle, { x: hx - 110, y: hy - 6, flip: 1, scale: 1 });
+      paintRakhsh(ctx, rj);
+      const idle = ROSTAM_CLIPS.idle.sample((this.t % 2.4) / 2.4);
+      const j = ROSTAM_RIG.compute(idle, { x: hx, y: hy - ROSTAM_HIP_H, flip: 1, scale: 1 });
+      paintRostam(ctx, j);
+    }
     ctx.restore();
   }
 }
