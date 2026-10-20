@@ -54,8 +54,7 @@ canvas#game {
   background: #0d0a14;
 }
 
-/* 2.5D layer stack: painted world → WebGL heroes → 2D combat fx */
-canvas#gl,
+/* fx overlay: combat punctuation above the painted world */
 canvas#fx {
   position: absolute;
   inset: 0;

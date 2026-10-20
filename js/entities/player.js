@@ -423,6 +423,52 @@ export class Player {
   }
 
   draw(ctx, cam) {
+    const spr = this.game.sprites;
+    if (spr && spr.ready && spr.has('rostam')) {
+      // ---- frame-by-frame sprite path (no rigging) ----
+      for (const gh of this.ghosts) {
+        if (gh.rot) {
+          ctx.save();
+          ctx.translate(gh.x, gh.y - 30);
+          ctx.rotate(gh.rot);
+          ctx.translate(-gh.x, -(gh.y - 30));
+          spr.draw(ctx, 'rostam', gh.clip || 'idle', gh.frame || 0, gh.x, gh.y,
+            { facing: gh.facing, alpha: gh.a, yOff: gh.yOff || 0 });
+          ctx.restore();
+        } else {
+          spr.draw(ctx, 'rostam', gh.clip || 'idle', gh.frame || 0, gh.x, gh.y,
+            { facing: gh.facing, alpha: gh.a, yOff: gh.yOff || 0 });
+        }
+      }
+      ctx.save();
+      const sy = 1 + this.sq, sx = 1 - this.sq * 0.7;
+      ctx.translate(this.x, this.y);
+      ctx.scale(sx, sy);
+      ctx.translate(-this.x, -this.y);
+      if (this.state === 'dead') {
+        const fall = Math.min(1, this.deadT / 0.5);
+        ctx.translate(this.x, this.y);
+        ctx.rotate(-this.deathDir * 1.35 * fall);
+        ctx.translate(-this.x, -this.y);
+      }
+      if (this.state === 'roll') {
+        const rot = this.rollDir * this.rig.progress * Math.PI * 2;
+        ctx.translate(this.x, this.y - 30);
+        ctx.rotate(rot);
+        ctx.translate(-this.x, -(this.y - 30));
+      }
+      const alpha = this.invuln > 0 && this.state !== 'roll' ? (Math.floor(this.invuln * 14) % 2 === 0 ? 0.35 : 1) : 1;
+      spr.draw(ctx, 'rostam', this.rig.name, this.rig.progress, this.x, this.y, {
+        facing: this.facing,
+        alpha,
+        flash: this.flashT > 0 ? this.flashT / 0.13 : 0,
+        yOff: (this.mounted ? -26 : 0) + (this.yOff || 0),
+      });
+      ctx.restore();
+      return;
+    }
+
+    // ---- legacy procedural path (fallback when sprite assets are absent) ----
     // afterimage ghosts (roll / finisher leaps) — drawn beneath the hero
     for (const gh of this.ghosts) {
       const joints = ROSTAM_RIG.compute(gh.pose, { x: gh.x, y: gh.y - ROSTAM_HIP_H, flip: gh.facing, scale: 1 });

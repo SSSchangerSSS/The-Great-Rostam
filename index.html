@@ -4,8 +4,8 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
 <meta name="theme-color" content="#0d0a14" />
-<title>The Great Rostam ⚔️ — A Shahnameh 2.5D Action Game</title>
-<meta name="description" content="An epic 2.5D action game inspired by Rostam of Shahnameh. Three.js toon-shaded heroes over a hand-painted 2D world — mobile-first, playable in your browser." />
+<title>The Great Rostam ⚔️ — A Shahnameh Action Game</title>
+<meta name="description" content="An epic frame-by-frame action game inspired by Rostam of Shahnameh — hand-painted sprite-sheet animations, mobile-first, playable in your browser." />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&family=Vazirmatn:wght@400;700;900&display=swap" rel="stylesheet" />
@@ -15,7 +15,6 @@
 <body>
   <div id="stage">
     <canvas id="game" width="1280" height="720"></canvas>
-    <canvas id="gl"></canvas>
     <canvas id="fx"></canvas>
 
     <!-- ===== HUD layer ===== -->
@@ -109,7 +108,7 @@
       <div id="title-ornament">𐎣</div>
       <h1 id="title-main">THE GREAT ROSTAM</h1>
       <div id="title-fa">رستمِ بزرگ</div>
-      <div id="title-sub">A 2.5D Action Epic — 3D heroes, hand-painted world</div>
+      <div id="title-sub">A Frame-by-Frame Action Epic — hand-painted sprite sheets, zero rigging</div>
       <div id="title-trial">Trial I — The Lion · خوانِ اوّل: شیر</div>
       <div id="title-start" class="blink">— PRESS ENTER / اینتر —</div>
       <div id="title-controls">
@@ -138,9 +137,6 @@
     <div id="mute-indicator" class="hidden">🔇 M — sound off</div>
   </div>
 
-  <script src="js/lib/three.min.js"></script>
-  <script src="js/lib/GLTFLoader.js"></script>
-  <script src="js/lib/SkeletonUtils.js"></script>
   <script type="module" src="js/main.js"></script>
 </body>
 </html>

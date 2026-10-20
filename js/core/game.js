@@ -12,7 +12,7 @@ import { TitleState } from '../states/title.js';
 import { PlayState } from '../states/play.js';
 import { ResultsState } from '../states/results.js';
 import { Environment } from '../gfx/parallax.js';
-import { GL3D } from '../gfx/gl3d.js';
+import { SpriteBank } from '../gfx/sprites.js';
 import * as painters from '../gfx/paint.js';
 
 const BASE_H = 720;      // logical viewport height reference
@@ -23,11 +23,13 @@ export class Game {
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d');
     this.stage = document.getElementById('stage');
-    // 2.5D stack: fx overlay for combat punctuation + WebGL hero layer
+    // frame-by-frame sprite bank (pre-drawn sheets — no rigging at runtime);
+    // legacy procedural painters remain as automatic fallback
+    this.sprites = new SpriteBank();
+    this.sprites.load();
     const fxCanvas = document.getElementById('fx');
     this.fxCanvas = fxCanvas;
     this.fxCtx = fxCanvas ? fxCanvas.getContext('2d') : null;
-    this.gl3d = new GL3D(this);
 
     this.input = new Input();
     this.audio = new AudioSys();
@@ -103,7 +105,6 @@ export class Game {
     };
     sizeCanvas(this.canvas);
     sizeCanvas(this.fxCanvas);
-    if (this.gl3d && this.gl3d.ok) this.gl3d.resize(w, h, dpr);
     this.dpr = dpr;
 
     const zoomH = h / BASE_H;
@@ -296,7 +297,7 @@ export class Game {
     // touch UI context
     this.touch.poll();
 
-    // render — three stacked layers: painted 2D world → 3D heroes → combat fx
+    // render — painted 2D world → sprite-sheet heroes → combat fx overlay
     const ctx = this.ctx;
     const s = this.renderScale || this.dpr || 1;
     ctx.setTransform(s, 0, 0, s, 0, 0);
@@ -307,7 +308,6 @@ export class Game {
       this.fxCtx.setTransform(s, 0, 0, s, 0, 0);
       this.fxCtx.clearRect(0, 0, this.viewW, this.viewH);
     }
-    if (this.gl3d && this.gl3d.ok) this.gl3d.render(this.state, this.camera, rawDt);
 
     this.input.endFrame();
     requestAnimationFrame((t) => this._frame(t));
