@@ -1,4 +1,4 @@
-// sprites.js v3 — frame-by-frame sprite-SHEET animation layer (NO rigging).
+// sprites.js v4 — frame-by-frame sprite-SHEET animation layer (NO rigging).
 // Every character clip is ONE pre-packed sprite sheet PNG under
 // assets/sprites/<char>/<clip>.png — a 6x5 grid of exactly 30 frames
 // (see manifest.json v3: {sheet, cols, rows, fw, fh, frames, loop}).
@@ -6,15 +6,16 @@
 // QTE windows, combo pacing) is untouched — only the pixels change.
 //
 //   SpriteBank.draw(ctx, char, clip, progress, x, y, opts)
-//     x,y = feet anchor (world space, already camera-transformed)
+//     x,y = feet anchor (WORLD space — drawn inside cam.apply)
 //     opts: { facing, alpha, flash, tint, scale, yOff }
 //
-// ALIAS sub-ranges are FRACTIONS of the clip (0..1), robust to frame counts.
-// Loading is STAGED PER CHARACTER (rostam first) so slow mobile networks get
-// the hero quickly instead of staring at fallback painters for 8MB.
-// If the manifest or a sheet is missing, callers silently fall back to the
-// legacy procedural painters — the game can never break because of assets.
-
+// v2 LOADING CONTRACT (no fake success):
+//   • a failed sheet is RECORDED (never silently "done"), retried once, and
+//     reported — see status()/console output
+//   • has(char) is all-or-nothing per character: EVERY clip of that char must
+//     have loaded, otherwise the whole character falls back to the legacy
+//     procedural painters. A half-loaded hero can never turn invisible.
+//   • draw() still guards every frame and reports one warning per bad clip
 const ASSET_VER = 'v3';   // bump on every sheet rebuild — busts stale caches
 
 const ALIAS = {
@@ -38,8 +39,10 @@ export class SpriteBank {
     this.ready = false;
     this.data = null;          // manifest chars
     this.imgs = new Map();     // 'char/clip' -> HTMLImageElement (sheet)
+    this.failed = new Set();   // 'char/clip' entries that failed to load
     this.promise = null;
     this.charReady = new Set(); // chars whose sheets are ALL loaded
+    this._warned = new Set();   // dedup draw-time warnings
     this._scratch = null;      // offscreen canvas for flash/tint passes
   }
 
@@ -59,26 +62,76 @@ export class SpriteBank {
           const info = chars[char];
           if (!info) continue;
           const clips = Object.keys(info.clips || {});
-          await Promise.all(clips.map((clip) => new Promise((done) => {
-            const im = new Image();
-            im.onload = () => { this.imgs.set(`${char}/${clip}`, im); done(); };
-            im.onerror = () => done();
-            im.src = `assets/sprites/${char}/${info.clips[clip].sheet}?v=${ASSET_VER}`;
-          })));
-          this.charReady.add(char);
+          await Promise.all(clips.map((clip) => this._loadSheet(char, clip, info.clips[clip])));
+          // ALL-or-nothing: a character is usable only if every clip exists
+          const bad = clips.filter(c => this.failed.has(`${char}/${c}`));
+          if (bad.length === 0) {
+            this.charReady.add(char);
+          } else {
+            console.warn(`[sprites] char "${char}" INCOMPLETE — missing ${bad.join(', ')} — procedural fallback active for it`);
+          }
           if (char === 'rostam') {
-            this.ready = true;
-            console.log('[sprites] rostam sheets ready (staged)');
+            this.ready = this.charReady.has('rostam');
+            console.log(this.ready
+              ? '[sprites] rostam sheets ready (staged)'
+              : '[sprites] rostam sheets FAILED — legacy painter stays active');
           }
         }
         this.ready = this.charReady.size > 0;
-        console.log(`[sprites] v3 bank ready — ${this.imgs.size} sheets, 30 frames/clip`);
+        const ok = this.imgs.size, bad = this.failed.size;
+        console.log(`[sprites] bank ${this.ready ? 'ready' : 'UNAVAILABLE'} — ${ok} sheets ok, ${bad} failed`);
+        if (bad > 0) console.warn('[sprites] failed sheets:', [...this.failed].join(', '));
       } catch (e) {
         console.warn('[sprites] asset bank unavailable — legacy painters stay active:', e.message);
         this.ready = false;
       }
     })();
     return this.promise;
+  }
+
+  // load one sheet with ONE retry — failures are recorded, never faked
+  _loadSheet(char, clip, clipInfo) {
+    const src = `assets/sprites/${char}/${clipInfo.sheet}?v=${ASSET_VER}`;
+    return new Promise((done) => {
+      let attempts = 0;
+      const tryLoad = () => {
+        attempts++;
+        const im = new Image();
+        im.onload = () => {
+          // a decoded empty/broken image is a failure too
+          if (!im.naturalWidth || !im.naturalHeight) {
+            this.failed.add(`${char}/${clip}`);
+            console.warn(`[sprites] empty image: ${src}`);
+          } else {
+            this.imgs.set(`${char}/${clip}`, im);
+          }
+          done();
+        };
+        im.onerror = () => {
+          if (attempts < 2) { setTimeout(tryLoad, 350); return; }   // one retry
+          this.failed.add(`${char}/${clip}`);
+          console.warn(`[sprites] FAILED to load: ${src}`);
+          done();
+        };
+        im.src = src;
+      };
+      tryLoad();
+    });
+  }
+
+  // truthful per-character/per-clip status (tools, tests, docs)
+  status() {
+    const out = {};
+    if (this.data) {
+      for (const [char, info] of Object.entries(this.data)) {
+        out[char] = {};
+        for (const clip of Object.keys(info.clips || {})) {
+          out[char][clip] = this.failed.has(`${char}/${clip}`) ? 'failed'
+            : this.imgs.has(`${char}/${clip}`) ? 'loaded' : 'pending';
+        }
+      }
+    }
+    return out;
   }
 
   has(char) {
@@ -127,7 +180,13 @@ export class SpriteBank {
   draw(ctx, char, clip, progress, x, y, opts = {}) {
     if (!this.has(char)) return false;
     const info = this._clipInfo(char, clip);
-    if (!info || info.n <= 0) return false;
+    if (!info || info.n <= 0) {
+      if (!this._warned.has(`${char}/${clip}`)) {
+        this._warned.add(`${char}/${clip}`);
+        console.warn(`[sprites] no sheet for clip "${clip}" of "${char}" — frame skipped`);
+      }
+      return false;
+    }
 
     const p = Number.isFinite(progress) ? Math.max(0, progress) : 0;
     const t = p >= 0.999 ? 0.999 : (p % 1);

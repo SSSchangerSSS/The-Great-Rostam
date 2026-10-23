@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&family=Vazirmatn:wght@400;700;900&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="css/style.css?v=3" />
+<link rel="stylesheet" href="css/style.css?v=4" />
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>⚔️</text></svg>" />
 </head>
 <body>
@@ -114,6 +114,7 @@
       <div id="title-sub">A Frame-by-Frame Action Epic — hand-painted 30-frame sprite sheets, zero rigging</div>
       <div id="title-trial">Trial I — The Lion · خوانِ اوّل: شیر</div>
       <div id="title-start" class="blink">— PRESS ENTER / اینتر —</div>
+      <button id="title-continue" class="hidden">⤴ CONTINUE — کلید C</button>
       <div id="title-ver" style="opacity:.55;font-size:12px;letter-spacing:.14em;margin-top:10px">v3 — REBUILT FRAME-BY-FRAME</div>
       <div id="title-controls">
         <span>← → Move</span><span>Z Jump</span><span>X Attack</span><span>C Bow</span><span>V Roll</span><span>Shift Rakhsh</span><span>F Finisher</span><span>Esc Pause</span>
@@ -123,6 +124,11 @@
     <div id="pause-screen" class="layer menu hidden">
       <h2>PAUSED · توقف</h2>
       <div class="menu-hint blink" id="pause-hint">Esc / tap to resume</div>
+      <div id="settings-row">
+        <button class="setbtn" id="set-sound">🔊 صدا</button>
+        <button class="setbtn" id="set-shake">📳 لرزش</button>
+        <button class="setbtn" id="set-qte">🎯 QTE</button>
+      </div>
     </div>
 
     <div id="victory-screen" class="layer menu hidden">
@@ -135,12 +141,12 @@
     <div id="defeat-screen" class="layer menu hidden">
       <h2 class="blood">DEFEAT</h2>
       <div id="defeat-fa">پهلوان به خاک افتاد… اما داستان تمام نشده</div>
-      <div class="menu-hint blink">ENTER / tap — try again</div>
+      <div class="menu-hint blink" id="defeat-hint">ENTER / tap — try again</div>
     </div>
 
     <div id="mute-indicator" class="hidden">🔇 M — sound off</div>
   </div>
 
-  <script type="module" src="js/main.js?v=3"></script>
+  <script type="module" src="js/main.js?v=4"></script>
 </body>
 </html>

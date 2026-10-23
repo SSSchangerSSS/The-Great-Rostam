@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Animation Lab — آزمایشگاه انیمیشن رستم</title>
+<style>
+  :root { --bg:#141019; --panel:#1e1726; --ink:#e8dcc8; --gold:#ffd700; --line:#3a2f45; --bad:#e05545; --good:#7bc47f; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font-family:'Vazirmatn', Tahoma, sans-serif; }
+  header { padding:12px 18px; background:var(--panel); border-bottom:1px solid var(--line); display:flex; gap:14px; align-items:center; flex-wrap:wrap; }
+  header h1 { font-size:16px; margin:0; color:var(--gold); }
+  select, button, input[type=range] { font-family:inherit; }
+  select { background:#0d0a12; color:var(--ink); border:1px solid var(--line); border-radius:6px; padding:6px 10px; }
+  button { background:#0d0a12; color:var(--ink); border:1px solid var(--line); border-radius:6px; padding:6px 12px; cursor:pointer; }
+  button:hover { border-color:var(--gold); }
+  button.on { background:var(--gold); color:#1d130c; font-weight:700; }
+  main { display:grid; grid-template-columns: 1fr 320px; gap:0; min-height: calc(100vh - 58px); }
+  #stageWrap { position:relative; background:
+      repeating-conic-gradient(#191320 0% 25%, #141019 0% 50%) 0/28px 28px; }
+  canvas#view { position:absolute; inset:0; width:100%; height:100%; display:block; }
+  #hud { position:absolute; top:10px; left:12px; font-size:13px; background:rgba(13,10,18,.8); padding:8px 12px; border-radius:8px; border:1px solid var(--line); line-height:1.9; }
+  #hud b { color:var(--gold); }
+  aside { border-right:1px solid var(--line); padding:14px; background:var(--panel); overflow:auto; }
+  aside h2 { font-size:14px; color:var(--gold); margin:14px 0 8px; }
+  .row { display:flex; gap:8px; align-items:center; margin:8px 0; flex-wrap:wrap; }
+  label { font-size:13px; opacity:.85; }
+  #report { font-size:12.5px; line-height:1.9; white-space:pre-wrap; direction:ltr; text-align:left;
+    background:#0d0a12; border:1px solid var(--line); border-radius:8px; padding:10px; max-height:46vh; overflow:auto; }
+  .ok { color:var(--good); } .bad { color:var(--bad); } .warn { color:#e8b64c; }
+  .chk { display:flex; gap:14px; flex-wrap:wrap; font-size:13px; }
+  .chk label { display:flex; gap:5px; align-items:center; }
+  @media (max-width: 900px) { main { grid-template-columns: 1fr; } aside { border-right:0; border-top:1px solid var(--line);} }
+</style>
+</head>
+<body>
+<header>
+  <h1>🎞 Animation Lab</h1>
+  <select id="charSel"></select>
+  <select id="clipSel"></select>
+  <button id="playBtn" class="on">⏸ توقف</button>
+  <button id="prevBtn">◀ فریم</button>
+  <button id="nextBtn">فریم ▶</button>
+  <div class="row"><label>سرعت</label><input id="speed" type="range" min="0.1" max="2" step="0.05" value="1" style="width:110px"><span id="speedV">1.0×</span></div>
+  <button id="flipBtn">↔ flip</button>
+</header>
+<main>
+  <div id="stageWrap">
+    <canvas id="view"></canvas>
+    <div id="hud"></div>
+  </div>
+  <aside>
+    <h2>نمایش‌ها</h2>
+    <div class="chk">
+      <label><input type="checkbox" id="ckGround" checked> خط زمین</label>
+      <label><input type="checkbox" id="ckOnion" checked> فریم قبلی</label>
+      <label><input type="checkbox" id="ckPivot" checked> لنگر پا</label>
+      <label><input type="checkbox" id="ckBoxes"> جعبه‌ها (body/hurt/hit)</label>
+    </div>
+    <h2>اعتبارسنجی دارایی‌ها</h2>
+    <div class="row"><button id="validateBtn">🔍 اعتبارسنجی کامل</button></div>
+    <div id="report">در حال بارگذاری manifest…</div>
+    <h2>راهنما</h2>
+    <div style="font-size:12.5px; line-height:1.9; opacity:.8">
+      ابزار روی همان شیت‌های واقعی <code>assets/sprites/</code> کار می‌کند.
+      لنگر همهٔ فریم‌ها «مرکز کف پا» است. «فریم قبلی» برای دیدن جابه‌جایی عمدی بدن
+      در برابر لرزش ناخواسته است. اعتبارسنجی، ابعاد واقعی تصویر، تعداد فریم،
+      نگاشت کلیپ‌ها و فریم‌های خالی مشکوک را گزارش می‌کند.
+    </div>
+  </aside>
+</main>
+
+<script type="module">
+const $ = (id) => document.getElementById(id);
+const view = $('view');
+const ctx = view.getContext('2d');
+
+// collision/hurt reference sizes (mirrors the game constants — see entities)
+const BODY = {
+  rostam: { body:[34,62], hurt:[28,56], hit:[88,62] },
+  rakhsh: { body:[64,50], hurt:[64,50], hit:null },
+  lion:   { body:[92,64], hurt:[92,64], hit:[85,70] },
+  jackal: { body:[40,30], hurt:[40,36], hit:null },
+  jackalA:{ body:[56,44], hurt:[56,50], hit:null },
+};
+const CLIP_DURATION = { // seconds — mirrors content/rigs.js (approx reference)
+  idle:3.2, run:0.46, jump:0.34, fall:0.55, land:0.26, roll:0.34,
+  attack1:0.30, attack2:0.28, attack3:0.55, airAttack:0.30,
+  bowDraw:0.22, bowHold:0.5, bowShot:0.18, hurt:0.4, dead:0.9, mount:0.55,
+  finishLeap:0.55, finishSlam:0.42,
+  prowl:1.05, crouch:0.55, pounce:0.55, swipe:0.42, roar:1.0, flinch:0.22, stagger:1.7,
+  die:0.55, howl:1.0, gallop:0.42,
+};
+
+let manifest = null;
+let imgCache = new Map();      // 'char/clip' -> Image or null
+let playing = true, tNorm = 0, speed = 1, flipped = false;
+
+async function loadManifest() {
+  const res = await fetch('../assets/sprites/manifest.json');
+  manifest = await res.json();
+  const chars = Object.keys(manifest.chars);
+  $('charSel').innerHTML = chars.map(c => `<option value="${c}">${c}</option>`).join('');
+  fillClips();
+  $('report').textContent = 'manifest v' + manifest.version + ' — ' + chars.length + ' شخصیت بارگذاری شد.';
+}
+
+function fillClips() {
+  const c = $('charSel').value;
+  const clips = Object.keys(manifest.chars[c].clips);
+  $('clipSel').innerHTML = clips.map(k => `<option value="${k}">${k}</option>`).join('');
+}
+
+function getImg(char, clip) {
+  const key = `${char}/${clip}`;
+  if (imgCache.has(key)) return imgCache.get(key);
+  const info = manifest.chars[char].clips[clip];
+  const im = new Image();
+  im.onload = () => { draw(); };
+  im.onerror = () => { imgCache.set(key, null); draw(); };
+  im.src = `../assets/sprites/${char}/${info.sheet}`;
+  imgCache.set(key, im);
+  return im;
+}
+
+function resize() {
+  const w = view.parentElement.clientWidth, h = view.parentElement.clientHeight;
+  const dpr = Math.min(2, devicePixelRatio || 1);
+  view.width = w * dpr; view.height = h * dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+window.addEventListener('resize', resize);
+
+function draw() {
+  const W = view.parentElement.clientWidth, H = view.parentElement.clientHeight;
+  ctx.clearRect(0, 0, W, H);
+  const char = $('charSel').value, clip = $('clipSel').value;
+  const info = manifest.chars[char].clips[clip];
+  if (!info) return;
+  const im = getImg(char, clip);
+
+  // ground line at 78% height; feet anchor at center
+  const gy = H * 0.78, cx = W / 2, scale = 2.2;
+  if ($('ckGround').checked) {
+    ctx.strokeStyle = 'rgba(200,168,119,.6)'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(W, gy); ctx.stroke();
+  }
+
+  const drawFrame = (idx, alpha) => {
+    if (!im || !im.complete || !im.naturalWidth) return;
+    const sx = (idx % info.cols) * info.fw, sy = Math.floor(idx / info.cols) * info.fh;
+    const Hpx = manifest.chars[char].h * scale, Wpx = Hpx * (info.fw / info.fh);
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.translate(cx, gy);
+    if (flipped) ctx.scale(-1, 1);
+    ctx.drawImage(im, sx, sy, info.fw, info.fh, -Wpx / 2, -Hpx, Wpx, Hpx);
+    ctx.restore();
+  };
+
+  const n = info.frames;
+  const idx = Math.min(n - 1, Math.floor(tNorm * n));
+  // onion skin — previous frame, semi-transparent
+  if ($('ckOnion').checked && idx > 0) drawFrame(idx - 1, 0.22);
+  drawFrame(idx, 1);
+
+  // feet pivot marker
+  if ($('ckPivot').checked) {
+    ctx.strokeStyle = '#ffd700'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(cx, gy, 7, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx - 14, gy); ctx.lineTo(cx + 14, gy);
+    ctx.moveTo(cx, gy - 14); ctx.lineTo(cx, gy + 14); ctx.stroke();
+  }
+
+  // reference boxes (body / hurt / hit) drawn at world scale
+  if ($('ckBoxes').checked && BODY[char]) {
+    const b = BODY[char];
+    const box = (w, h, color, dy = 0) => {
+      ctx.strokeStyle = color; ctx.lineWidth = 1.6;
+      ctx.strokeRect(cx - w * scale / 2, gy - h * scale - dy, w * scale, h * scale);
+    };
+    box(b.body[0], b.body[1], 'rgba(120,190,255,.9)');
+    box(b.hurt[0], b.hurt[1], 'rgba(255,90,90,.8)');
+    if (b.hit && (clip.startsWith('attack') || clip === 'swipe' || clip === 'pounce')) {
+      ctx.save();
+      ctx.translate(flipped ? -60 : 60, 0);
+      box(b.hit[0], b.hit[1], 'rgba(255,215,0,.9)', 20);
+      ctx.restore();
+    }
+  }
+
+  const dur = CLIP_DURATION[clip] || 0.5;
+  $('hud').innerHTML =
+    `<b>${char}</b> / <b>${clip}</b><br>` +
+    `فریم <b>${idx + 1}</b> از <b>${n}</b><br>` +
+    `زمان: <b>${(tNorm * dur).toFixed(2)}s</b> / ${dur}s<br>` +
+    `${info.cols}×${info.rows} سلول — ${info.fw}×${info.fh}px<br>` +
+    `${flipped ? '↔ flip روشن' : 'رو به راست'}`;
+}
+
+let last = performance.now();
+function loop(now) {
+  const dt = Math.min(0.05, (now - last) / 1000);
+  last = now;
+  const clip = $('clipSel').value;
+  const info = manifest.chars[$('charSel').value].clips[clip];
+  const dur = CLIP_DURATION[clip] || 0.5;
+  const looped = info.loop !== false;
+  if (playing) {
+    tNorm += (dt * speed) / dur;
+    if (looped) tNorm %= 1;
+    else tNorm = Math.min(tNorm, 0.9999);
+  }
+  draw();
+  requestAnimationFrame(loop);
+}
+
+// ---- validation ----
+async function validate() {
+  const rep = $('report');
+  rep.textContent = 'در حال بررسی…';
+  let out = [];
+  let allOk = true;
+  for (const [char, cinfo] of Object.entries(manifest.chars)) {
+    out.push(`▶ ${char} (h=${cinfo.h})`);
+    for (const [clip, info] of Object.entries(cinfo.clips)) {
+      const im = await new Promise((done) => {
+        const i = new Image();
+        i.onload = () => done(i);
+        i.onerror = () => done(null);
+        i.src = `../assets/sprites/${char}/${info.sheet}`;
+      });
+      if (!im) { out.push(`  ✗ ${clip}: تصویر بارگذاری نشد`); allOk = false; continue; }
+      const expW = info.cols * info.fw, expH = info.rows * info.fh;
+      const sizeOk = im.naturalWidth === expW && im.naturalHeight === expH;
+      if (!sizeOk) allOk = false;
+      out.push(`  ${sizeOk ? '✓' : '✗'} ${clip}: ${im.naturalWidth}×${im.naturalHeight} (انتظار ${expW}×${expH}), ${info.frames} فریم`);
+      // per-frame alpha coverage — blank/suspicious frame detection
+      if (sizeOk) {
+        const cv = document.createElement('canvas');
+        cv.width = info.fw; cv.height = info.fh;
+        const c2 = cv.getContext('2d');
+        const blanks = [];
+        for (let f = 0; f < info.frames; f++) {
+          const sx = (f % info.cols) * info.fw, sy = Math.floor(f / info.cols) * info.fh;
+          c2.clearRect(0, 0, info.fw, info.fh);
+          c2.drawImage(im, sx, sy, info.fw, info.fh, 0, 0, info.fw, info.fh);
+          const d = c2.getImageData(0, 0, info.fw, info.fh).data;
+          let cov = 0;
+          for (let i = 3; i < d.length; i += 16) if (d[i] > 12) cov++;
+          const total = (d.length / 16);
+          const frac = cov / total;
+          if (frac < 0.008) blanks.push(f + 1);
+        }
+        if (blanks.length) { out.push(`      ! فریم‌های خالی مشکوک: ${blanks.join(', ')}`); }
+        // feet-anchor check: bottom band coverage (content should touch the ground line)
+        const sy = (Math.floor((info.frames - 1) / info.cols)) * info.fh;
+        const sx = ((info.frames - 1) % info.cols) * info.fw;
+        c2.clearRect(0, 0, info.fw, info.fh);
+        c2.drawImage(im, sx, sy, info.fw, info.fh, 0, 0, info.fw, info.fh);
+        const d = c2.getImageData(0, info.fh - 4, info.fw, 4).data;
+        let bottom = 0;
+        for (let i = 3; i < d.length; i += 4) if (d[i] > 12) bottom++;
+        if (bottom === 0) out.push(`      ! آخرین فریم تا باند پایینی (کف پا) محتوا ندارد — لنگر پا ممکن است بالا باشد`);
+      }
+    }
+  }
+  rep.innerHTML = (allOk ? '<span class="ok">همهٔ شیت‌ها سالم‌اند ✓</span>\n' : '<span class="bad">ناسازگاری پیدا شد — ریز زیر:</span>\n')
+    + out.map(l => l.startsWith('  ✗') ? `<span class="bad">${l}</span>` : l.startsWith('      !') ? `<span class="warn">${l}</span>` : l).join('\n');
+}
+
+// ---- wiring ----
+$('charSel').addEventListener('change', fillClips);
+$('clipSel').addEventListener('change', () => { tNorm = 0; });
+$('playBtn').addEventListener('click', () => {
+  playing = !playing;
+  $('playBtn').textContent = playing ? '⏸ توقف' : '▶ پخش';
+  $('playBtn').classList.toggle('on', playing);
+});
+$('prevBtn').addEventListener('click', () => {
+  playing = false; $('playBtn').textContent = '▶ پخش'; $('playBtn').classList.remove('on');
+  const info = manifest.chars[$('charSel').value].clips[$('clipSel').value];
+  tNorm = Math.max(0, (Math.floor(tNorm * info.frames) - 1) / info.frames);
+});
+$('nextBtn').addEventListener('click', () => {
+  playing = false; $('playBtn').textContent = '▶ پخش'; $('playBtn').classList.remove('on');
+  const info = manifest.chars[$('charSel').value].clips[$('clipSel').value];
+  tNorm = Math.min(0.9999, (Math.floor(tNorm * info.frames) + 1) / info.frames);
+});
+$('speed').addEventListener('input', () => {
+  speed = parseFloat($('speed').value);
+  $('speedV').textContent = speed.toFixed(2) + '×';
+});
+$('flipBtn').addEventListener('click', () => { flipped = !flipped; $('flipBtn').classList.toggle('on', flipped); });
+for (const id of ['ckGround', 'ckOnion', 'ckPivot', 'ckBoxes']) $(id).addEventListener('change', draw);
+$('validateBtn').addEventListener('click', validate);
+
+loadManifest().then(() => { resize(); requestAnimationFrame(loop); });
+</script>
+</body>
+</html>

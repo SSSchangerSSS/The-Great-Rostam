@@ -94,8 +94,9 @@ export class DialogueBox {
       }
     }
 
-    // advance input
+    // advance input — consume() so one press never advances twice
     if (this.input.justPressed('advance')) {
+      this.input.consume('advance');
       if (this._typing) {
         // complete the line instantly
         this.charIdx = line.fa.length;

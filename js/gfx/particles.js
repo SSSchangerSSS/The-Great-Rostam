@@ -80,9 +80,17 @@ export class Particles {
     }
   }
   draw(ctx, cam) {
+    // COORDINATE CONTRACT: particles live in WORLD space and are drawn inside
+    // cam.apply(ctx) — no manual camera offset subtraction here (the old
+    // `p.x - cam.offsetX` double-shifted every effect on screen).
+    // Cull against the camera's world-space view rect (cheap O(1) per particle).
+    const m = 40;
+    const rx0 = cam.x - m, rx1 = cam.x + cam.visW + m;
+    const ry0 = cam.y - m, ry1 = cam.y + cam.visH + m;
     for (const p of this.active) {
+      if (p.x < rx0 || p.x > rx1 || p.y < ry0 || p.y > ry1) continue;
       const a = p.fade ? Math.max(0, p.life / p.maxLife) : 1;
-      const x = p.x - cam.offsetX, y = p.y - cam.offsetY;
+      const x = p.x, y = p.y;
       if (p.shape === 'spark') {
         // streak along velocity — the classic Flash hit-spark
         ctx.globalAlpha = a;

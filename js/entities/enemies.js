@@ -42,6 +42,7 @@ export class Jackal {
   constructor(game, x, y) {
     this.game = game;
     this.x = x; this.y = y;             // y = feet
+    this.px = x; this.py = y;           // previous position (collision + interp)
     this.homeX = x;
     this.w = 40; this.h = 30;
     this.vx = 0; this.vy = 0;
@@ -98,6 +99,7 @@ export class Jackal {
       return;
     }
     if (this.flashT > 0) this.flashT -= dt;
+    if (this._trampleT > 0) this._trampleT -= dt;
     this.lungeCd -= dt;
     const dir = Math.sign(player.x - this.x) || -1;
     const dist = Math.abs(player.x - this.x);
@@ -138,7 +140,7 @@ export class Jackal {
       if (dist > this.aggro) {
         // idle patrol near home — no cross-map marches
         this.patrolT -= dt;
-        if (this.patrolT <= 0) { this.patrolT = 1.2 + Math.random() * 1.4; this.patrolDir = Math.random() < 0.5 ? -1 : 1; }
+        if (this.patrolT <= 0) { this.patrolT = 1.2 + this.game.rng() * 1.4; this.patrolDir = this.game.rng() < 0.5 ? -1 : 1; }
         if (Math.abs(this.x - this.homeX) > 90) this.patrolDir = Math.sign(this.homeX - this.x);
         this.vx = this.patrolDir * 55;
         this.rig.play('run', { speed: 0.7 });
@@ -159,6 +161,8 @@ export class Jackal {
       }
     }
 
+    // ---- physics: save REAL previous position, then integrate ----
+    this.px = this.x; this.py = this.y;
     this.vy += GRAV * dt;
     this.x += this.vx * dt;
     this.y += this.vy * dt;
@@ -166,10 +170,13 @@ export class Jackal {
     this.rig.update(dt);
   }
 
-  draw(ctx, cam) {
+  ix(a) { const t = a || 0; return this.px + (this.x - this.px) * t; }
+  iy(a) { const t = a || 0; return this.py + (this.y - this.py) * t; }
+
+  draw(ctx, cam, a = 0) {
     const spr = this.game.sprites;
     if (spr && spr.ready && spr.has('jackal')) {
-      spr.draw(ctx, 'jackal', this.rig.name, this.rig.progress, this.x, this.y, {
+      spr.draw(ctx, 'jackal', this.rig.name, this.rig.progress, this.ix(a), this.iy(a), {
         facing: this.facing,
         alpha: this.dead ? Math.max(0, 1 - this.deadT) : 1,
         flash: Math.max(0, this.flashT || 0) / 0.12,
@@ -177,7 +184,7 @@ export class Jackal {
       return;
     }
     const pose = this.rig.pose();
-    const joints = JACKAL_RIG.compute(pose, { x: this.x, y: this.y - 16, flip: this.facing, scale: 1 });
+    const joints = JACKAL_RIG.compute(pose, { x: this.ix(a), y: this.iy(a) - 16, flip: this.facing, scale: 1 });
     paintJackal(ctx, joints, this.dead ? Math.max(0, 1 - this.deadT) : 1, { flash: Math.max(0, this.flashT || 0) / 0.12 });
   }
 }
@@ -194,6 +201,7 @@ export class WhiteJackal {
     this.isMini = true;
     this.displayName = name || 'شغالِ سپید — The White Jackal';
     this.x = x; this.y = y;
+    this.px = x; this.py = y;
     this.w = 56; this.h = 44;
     this.vx = 0; this.vy = 0;
     this.facing = -1;
@@ -304,6 +312,7 @@ export class WhiteJackal {
     this.stateT += dt;
     this.howlCd -= dt;
     if (this.hurtFlash > 0) this.hurtFlash -= dt;
+    if (this._trampleT > 0) this._trampleT -= dt;
 
     if (this.dead) { this.rig.update(dt); this.deadT += dt; return; }
 
@@ -341,23 +350,32 @@ export class WhiteJackal {
         this.rig.play('run', { speed: 1.25 });
         if (dist < 340 && this.howlCd <= 0) this.enterState('howl');
         else if (dist < 110 && this.stateT > 0.4) {
-          this.enterState('triple');
-          this.lungeLeft = this.enraged ? 4 : 3;
+          // → TRIPLE-LUNGE CHAIN. FIX: 'triple' is a STATE, not a clip — the
+          // alpha jumps straight into its first real lunge (the 'lunge' clip
+          // exists in JACKAL_CLIPS), then re-lunges from each lunge's finish.
+          this.state = 'triple';
+          this.stateT = 0;
+          this.lungeLeft = this.enraged ? 3 : 2;   // lunges remaining AFTER this one
           this.pauseT = 0;
+          this.vx = dir * 470 * spd;
+          this.rig.play('lunge', { restart: true });
+          this.game.audio.play('pounce');
         }
         break;
       }
       case 'triple': {
-        // chained lunges with short pauses between
+        // chained lunges with short skid pauses between — driven by the
+        // 'lunge' clip finishing (never by a missing 'triple' clip).
+        // pauseT is ONLY armed when lunges remain, so pause-end always fires.
         if (this.pauseT > 0) {
           this.pauseT -= dt;
-          this.vx *= 0.8;
-          if (this.pauseT <= 0 && this.lungeLeft > 0) {
+          this.vx *= Math.pow(0.02, dt);           // skid to a stop between lunges
+          if (this.pauseT <= 0) {
             this.vx = dir * 470 * spd;
             this.rig.play('lunge', { restart: true });
             this.game.audio.play('pounce');
           }
-        } else if (this.rig.finished) {
+        } else if (this.rig.name === 'lunge' && this.rig.finished) {
           if (this.lungeLeft > 0) { this.lungeLeft--; this.pauseT = 0.26; }
           else { this.state = 'prowl'; this.stateT = 0; }
         }
@@ -387,6 +405,8 @@ export class WhiteJackal {
       player.hurt(1, Math.sign(this.x - player.x) || 1, this.game);
     }
 
+    // ---- physics: save REAL previous position, then integrate ----
+    this.px = this.x; this.py = this.y;
     this.vy += GRAV * dt;
     this.x += this.vx * dt;
     this.y += this.vy * dt;
@@ -395,34 +415,38 @@ export class WhiteJackal {
     this.rig.update(dt);
   }
 
-  draw(ctx, cam) {
+  ix(a) { const t = a || 0; return this.px + (this.x - this.px) * t; }
+  iy(a) { const t = a || 0; return this.py + (this.y - this.py) * t; }
+
+  draw(ctx, cam, a = 0) {
     const spr = this.game.sprites;
     if (spr && spr.ready && spr.has('jackalA')) {
       const alpha = this.dead ? Math.max(0, 1 - this.deadT) : 1;
+      const x = this.ix(a), y = this.iy(a);
       ctx.save();
-      ctx.translate(this.x, this.y);          // scale about the feet
+      ctx.translate(x, y);          // scale about the feet
       ctx.scale(1.5, 1.5);
-      ctx.translate(-this.x, -this.y);
-      spr.draw(ctx, 'jackalA', this.rig.name, this.rig.progress, this.x, this.y, {
+      ctx.translate(-x, -y);
+      spr.draw(ctx, 'jackalA', this.rig.name, this.rig.progress, x, y, {
         facing: this.facing,
         alpha,
         flash: Math.max(0, this.hurtFlash || 0) / 0.16,
         tint: this.enraged ? 'red' : null,
       });
       ctx.restore();
-      if (this.staggered && !this.dead) drawStars(ctx, this.x, this.y - this.h - 18, this.game.states.play.world.time);
+      if (this.staggered && !this.dead) drawStars(ctx, this.ix(a), this.iy(a) - this.h - 18, this.game.states.play.world.time);
       return;
     }
     const pose = this.rig.pose();
-    const joints = JACKAL_RIG.compute(pose, { x: this.x, y: this.y - 22, flip: this.facing, scale: 1 });
+    const joints = JACKAL_RIG.compute(pose, { x: this.ix(a), y: this.iy(a) - 22, flip: this.facing, scale: 1 });
     const alpha = this.dead ? Math.max(0, 1 - this.deadT) : 1;
     ctx.save();
-    ctx.translate(this.x, this.y);          // scale about the feet
+    ctx.translate(this.ix(a), this.iy(a));          // scale about the feet
     ctx.scale(1.5, 1.5);
-    ctx.translate(-this.x, -this.y);
+    ctx.translate(-this.ix(a), -this.iy(a));
     paintJackal(ctx, joints, alpha, { alpha: true, enraged: this.enraged, flash: Math.max(0, this.hurtFlash || 0) / 0.16 });
     ctx.restore();
-    if (this.staggered && !this.dead) drawStars(ctx, this.x, this.y - this.h - 18, this.game.states.play.world.time);
+    if (this.staggered && !this.dead) drawStars(ctx, this.ix(a), this.iy(a) - this.h - 18, this.game.states.play.world.time);
   }
 }
 
@@ -439,6 +463,7 @@ export class Lion {
     this.isMini = false;
     this.displayName = 'شیرِ خوانِ اوّل — The Lion of Trial I';
     this.x = x; this.y = y;             // y = feet
+    this.px = x; this.py = y;
     this.w = 92; this.h = 64;
     this.vx = 0; this.vy = 0;
     this.facing = -1;
@@ -551,6 +576,7 @@ export class Lion {
     this.stateT += dt;
     if (this.hurtFlash > 0) this.hurtFlash -= dt;
     if (this.recoil > 0) this.recoil = Math.max(0, this.recoil - dt * 1.6);
+    if (this._trampleT > 0) this._trampleT -= dt;
 
     if (this.dead) {
       this.rig.update(dt);
@@ -592,7 +618,7 @@ export class Lion {
         this.vx = dist > want + 30 ? dir * 130 * spd : dist < want - 40 ? -dir * 110 * spd : 0;
         this.rig.play('prowl');
         if (dist < 92 && this.stateT > (this.enraged ? 0.3 : 0.5)) this.enterState('swipe');
-        else if (this.stateT > (this.enraged ? 1.0 : 1.6) + Math.random() * 0.7 && this.onGround_) this.enterState('crouch');
+        else if (this.stateT > (this.enraged ? 1.0 : 1.6) + this.game.rng() * 0.7 && this.onGround_) this.enterState('crouch');
         break;
       }
       case 'crouch': {
@@ -644,7 +670,8 @@ export class Lion {
       case 'die': break;
     }
 
-    // physics
+    // physics: save REAL previous position, then integrate
+    this.px = this.x; this.py = this.y;
     this.vy += GRAV * dt;
     this.x += this.vx * dt;
     this.y += this.vy * dt;
@@ -658,16 +685,19 @@ export class Lion {
     this.rig.update(dt);
   }
 
-  draw(ctx, cam) {
+  ix(a) { const t = a || 0; return this.px + (this.x - this.px) * t; }
+  iy(a) { const t = a || 0; return this.py + (this.y - this.py) * t; }
+
+  draw(ctx, cam, a = 0) {
     const spr = this.game.sprites;
     if (spr && spr.ready && spr.has('lion')) {
-      spr.draw(ctx, 'lion', this.rig.name, this.rig.progress, this.x, this.y, {
+      spr.draw(ctx, 'lion', this.rig.name, this.rig.progress, this.ix(a), this.iy(a), {
         facing: this.facing,
         alpha: this.dead ? Math.max(0, 1 - this.deadT * 0.35) : 1,
         flash: Math.max(0, this.hurtFlash || 0) / 0.18,
         tint: this.enraged ? 'red' : null,
       });
-      if (this.staggered && !this.dead) drawStars(ctx, this.x, this.y - this.h - 10, this.game.states.play.world.time);
+      if (this.staggered && !this.dead) drawStars(ctx, this.ix(a), this.iy(a) - this.h - 10, this.game.states.play.world.time);
       return;
     }
     const pose = this.rig.pose();
@@ -677,9 +707,9 @@ export class Lion {
       pose.head = (pose.head || 0) + this.recoil * 0.3;
       pose.jaw = (pose.jaw || 0) + this.recoil * 0.25;
     }
-    const joints = LION_RIG.compute(pose, { x: this.x, y: this.y - 34, flip: this.facing, scale: 1 });
+    const joints = LION_RIG.compute(pose, { x: this.ix(a), y: this.iy(a) - 34, flip: this.facing, scale: 1 });
     paintLion(ctx, joints, this.dead ? Math.max(0, 1 - this.deadT * 0.35) : 1,
       Math.max(0, this.hurtFlash || 0) / 0.18, this.enraged);
-    if (this.staggered && !this.dead) drawStars(ctx, this.x, this.y - this.h - 10, this.game.states.play.world.time);
+    if (this.staggered && !this.dead) drawStars(ctx, this.ix(a), this.iy(a) - this.h - 10, this.game.states.play.world.time);
   }
 }

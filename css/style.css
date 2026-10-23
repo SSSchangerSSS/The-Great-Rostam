@@ -605,3 +605,44 @@ body:not(.touch) #title-controls .touch-only { display: none; }
   #qte-btns { gap: 12px; }
   #qte-btns button { width: 76px; height: 76px; font-size: 34px; }
 }
+
+/* ===== v4: checkpoint continue + pause settings row ===== */
+#title-continue {
+  display: block;
+  margin: 14px auto 0;
+  padding: 10px 26px;
+  font-family: 'Vazirmatn', sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  color: #ffd700;
+  background: rgba(43, 16, 4, 0.55);
+  border: 1px solid rgba(255, 215, 0, 0.45);
+  border-radius: 999px;
+  cursor: pointer;
+  backdrop-filter: blur(3px);
+  transition: background .15s ease, transform .15s ease;
+}
+#title-continue:hover { background: rgba(255, 215, 0, 0.14); transform: translateY(-1px); }
+#title-continue.hidden { display: none; }
+
+#settings-row {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 18px;
+  flex-wrap: wrap;
+}
+.setbtn {
+  padding: 9px 18px;
+  font-family: 'Vazirmatn', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  color: #e8dcc8;
+  background: rgba(30, 20, 10, 0.55);
+  border: 1px solid rgba(200, 168, 119, 0.4);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background .15s ease;
+}
+.setbtn:hover { background: rgba(200, 168, 119, 0.18); }

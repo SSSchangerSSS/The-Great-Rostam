@@ -127,12 +127,13 @@ export class FinisherQTE {
     const n = this.boss.finisherPrompts || 2;
     this.seq = [];
     let last = '';
+    const rng = g.rng || Math.random;   // seeded gameplay RNG when available
     for (let i = 0; i < n; i++) {
-      let act = PROMPT_ACTIONS[(Math.random() * PROMPT_ACTIONS.length) | 0];
+      let act = PROMPT_ACTIONS[(rng() * PROMPT_ACTIONS.length) | 0];
       if (act === last) act = PROMPT_ACTIONS[(PROMPT_ACTIONS.indexOf(act) + 1) % 3];
       last = act;
-      // escalating speed: later prompts shrink faster
-      const dur = (n === 1 ? 1.15 : 1.1 - i * 0.22) * (this.isMini ? 1.15 : 1);
+      // escalating speed: later prompts shrink faster (easy mode stretches all)
+      const dur = ((n === 1 ? 1.15 : 1.1 - i * 0.22) * (this.isMini ? 1.15 : 1)) * this._windows().durMul;
       this.seq.push({ action: act, dur });
     }
     this.idx = -1;
@@ -195,12 +196,21 @@ export class FinisherQTE {
     for (const b of this.el.btns.querySelectorAll('button')) b.classList.remove('match');
   }
 
+  // QTE easy mode (settings.qteEasy): wider timing windows, slower rings
+  _windows() {
+    const e = this.game.settings && this.game.settings.qteEasy;
+    return e
+      ? { perfectLo: 0.90, perfectHi: 1.14, goodLo: 0.74, goodHi: 1.34, durMul: 1.3 }
+      : { perfectLo: 0.92, perfectHi: 1.10, goodLo: 0.80, goodHi: 1.24, durMul: 1.0 };
+  }
+
   attempt(action) {
     if (this.state !== 'qte' || !this.cur || this.waitT > 0) return;
     const ratio = this.curSize / this.targetR;
+    const w = this._windows();
     if (action !== this.cur.action) return this._register('wrong');
-    if (ratio <= 1.24 && ratio >= 0.8) {
-      this._register(ratio <= 1.1 && ratio >= 0.92 ? 'perfect' : 'good');
+    if (ratio <= w.goodHi && ratio >= w.goodLo) {
+      this._register(ratio <= w.perfectHi && ratio >= w.perfectLo ? 'perfect' : 'good');
     } else {
       this._register('early');
     }
@@ -240,9 +250,10 @@ export class FinisherQTE {
     const g = this.game;
     this.el.overlay.classList.add('hidden');
     document.body.classList.remove('in-qte');
-    const boss = this.boss, isMini = this.isMini;
     this.state = 'idle';
+    const boss = this.boss, isMini = this.isMini;
     this.boss = null;
+    g.input.clearPresses();   // the QTE’s buttons must not leak into gameplay
     g.director.start(boss, isMini);
   }
 
@@ -253,6 +264,7 @@ export class FinisherQTE {
     this.state = 'idle';
     const boss = this.boss;
     this.boss = null;
+    g.input.clearPresses();
     g.timescale = 1;
     g.camera.zoomTo(1);
     g.camera.freeY = false;
@@ -286,9 +298,13 @@ export class FinisherQTE {
     }
     if (this.state !== 'qte') return;
 
-    // keyboard prompts
+    // keyboard prompts — consume so a buffered press cannot register twice
     for (const act of PROMPT_ACTIONS) {
-      if (g.input.justPressed(act)) { this.attempt(act); break; }
+      if (g.input.justPressed(act)) {
+        g.input.consume(act);
+        this.attempt(act);
+        break;
+      }
     }
 
     if (this.waitT > 0) {
@@ -320,9 +336,10 @@ export class FinisherQTE {
     this.el.offer.classList.add('hidden');
     this.el.overlay.classList.add('hidden');
     document.body.classList.remove('in-qte');
-    const boss = this.boss, isMini = this.isMini;
     this.state = 'idle';
+    const boss = this.boss, isMini = this.isMini;
     this.boss = null;
+    g.input.clearPresses();
     g.timescale = 1;
     g.camera.zoomTo(1);
     g.camera.freeY = false;
@@ -342,11 +359,22 @@ export class FinisherQTE {
 
 // ============================================================
 // Director — the finisher slam cinematic (real-time phases)
+// v2: every per-run flag is reset in start() (the missing _done_slamhit reset
+// made the SECOND finisher of a session fire no slam), the cinematic aborts
+// cleanly on pause / leaving play, and a stopped run can never pollute the next.
 // ============================================================
 export class Director {
   constructor(game) {
     this.game = game;
     this.active = false;
+    this.boss = null;
+    this.isMini = false;
+    this.t = 0;
+    this._slammed = false;
+    this._done_slamhit = false;
+    this._restored = false;
+    this._done = false;
+    this._ghostT = 0;
   }
   start(boss, isMini) {
     const g = this.game;
@@ -355,8 +383,10 @@ export class Director {
     this.isMini = isMini;
     this.t = 0;
     this._slammed = false;
+    this._done_slamhit = false;   // ← THE FIX: reset per run, or finisher #2 has no slam
     this._restored = false;
     this._done = false;
+    this._ghostT = 0;
     this.p0 = { x: g.player.x, y: g.player.y };
     g.timescale = 0.32;
     g.camera.zoomTo(isMini ? 1.42 : 1.55);
@@ -369,9 +399,26 @@ export class Director {
     vibr(40);
   }
 
+  // hard-stop the cinematic (pause, player death, leaving the play state).
+  // Restores every global the run touched; a not-yet-slammed boss recovers.
+  abort() {
+    if (!this.active) return;
+    const g = this.game;
+    this.active = false;
+    const b = this.boss;
+    this.boss = null;
+    g.timescale = 1;
+    g.camera.zoomTo(1);
+    g.camera.freeY = false;
+    if (g.player) { g.player.state = g.player.state === 'cine' ? 'idle' : g.player.state; g.player.yOff = 0; }
+    if (b && !b.dead && b.staggered && b.recoverFromStagger) b.recoverFromStagger();
+  }
+
   update(rawDt) {
     if (!this.active) return;
     const g = this.game;
+    // never let a cinematic outlive the play state (results, title…)
+    if (g.stateName !== 'play') { this.abort(); return; }
     const p = g.player, b = this.boss;
     this.t += rawDt;
     const t = this.t;

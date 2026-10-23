@@ -1,4 +1,18 @@
-// game.js — core engine: loop, state machine, adaptive viewport, slow-mo, shared systems
+// game.js — core engine: FIXED-TIMESTEP loop, state machine, adaptive viewport,
+// slow-mo, shared systems
+//
+// v2 simulation contract:
+//   • simulation runs at a fixed STEP = 1/60 s with an accumulator + catch-up cap
+//     (MAX_STEPS). Rendering is decoupled and interpolates positions with
+//     alpha = acc/STEP (entities store px/py). After a hidden-tab return the
+//     accumulator is dropped, so time never "teleports" the world.
+//   • time domains:
+//       sim time      — fixed steps × timescale (gameplay, physics, animation)
+//       real time     — rawDt (QTE rings, Director, delayed callbacks)
+//       UI time       — DOM/CSS animations (browser-owned)
+//   • pause truly freezes sim + cinematics; slow-mo never touches QTE timing
+//   • hitstop freezes gameplay INSIDE the play state but presses survive in the
+//     input buffer (120 ms), so fast inputs are never swallowed
 import { Input } from './input.js';
 import { Camera } from './camera.js';
 import { AudioSys } from './audio.js';
@@ -14,9 +28,14 @@ import { ResultsState } from '../states/results.js';
 import { Environment } from '../gfx/parallax.js';
 import { SpriteBank } from '../gfx/sprites.js';
 import * as painters from '../gfx/paint.js';
+import { makeRng } from './utils.js';
 
 const BASE_H = 720;      // logical viewport height reference
 const MIN_VIEW_W = 780;  // smallest logical width (portrait phones) — keeps combat readable
+const STEP = 1 / 60;     // fixed simulation step
+const MAX_STEPS = 4;     // catch-up cap: drop backlog beyond this (severe-slowdown policy)
+
+const SETTINGS_KEY = 'rostam_settings_v1';
 
 export class Game {
   constructor(canvas) {
@@ -34,6 +53,7 @@ export class Game {
     this.input = new Input();
     this.audio = new AudioSys();
     this.camera = new Camera(1280, BASE_H);
+    this.camera.game = this;               // camera reads shake-intensity setting
     this.particles = new Particles(420);
     this.hud = new Hud();
     this.menus = new Menus(this.audio);
@@ -44,6 +64,21 @@ export class Game {
     this.hitstop = 0;
     this.timescale = 1;          // slow-mo factor (finisher cinematics)
     this.realDt = 1 / 60;
+    this.alpha = 0;              // render interpolation alpha (0 = right on a sim step)
+
+    // ---- user settings (versioned, error-safe) ----
+    this.settings = { sound: true, shake: 1, qteEasy: false };
+    this.loadSettings();
+
+    // ---- deterministic gameplay RNG (logic only — visual FX keep Math.random) ----
+    const seedParam = new URLSearchParams(location.search).get('seed');
+    const seed = seedParam ? (parseInt(seedParam, 10) >>> 0) : (Date.now() >>> 0);
+    this.rngSeed = seed;
+    this.rng = makeRng(seed);
+
+    // ---- checkpoint (versioned, error-safe) ----
+    this.checkpoint = null;      // { levelId, x, y } once the mini-boss falls
+    this.loadCheckpoint();
 
     this.isTouch = window.matchMedia('(pointer: coarse)').matches
       || (('ontouchstart' in window) && navigator.maxTouchPoints > 0 && !window.matchMedia('(pointer: fine)').matches);
@@ -68,26 +103,85 @@ export class Game {
     this.state = this.states.title;
 
     this._last = performance.now();
-    this._pending = [];          // delayed callbacks
+    this._acc = 0;               // fixed-step accumulator
+    this._pending = [];          // delayed callbacks (real time)
     this.running = true;
+
+    // frame-time instrumentation (evidence for perf claims — see __rostam.stats)
+    this.stats = { fps: 0, frameMs: 0, simMs: 0, drawMs: 0, steps: 0, stepsDropped: 0 };
+    this._statAcc = { frames: 0, t: 0, sim: 0, draw: 0 };
 
     window.addEventListener('keydown', (e) => {
       if (e.code === 'Enter' || e.code === 'Space' || e.code.startsWith('Arrow')) e.preventDefault();
       // first real keypress also initializes audio
       this.audio.init();
+      this.applySoundSetting();
     });
     window.addEventListener('mousedown', () => this.audio.init());
     window.addEventListener('pointerdown', () => this.audio.init(), { passive: true });
     window.addEventListener('resize', () => this.resize());
     window.addEventListener('orientationchange', () => setTimeout(() => this.resize(), 120));
     document.addEventListener('visibilitychange', () => {
-      if (document.hidden && this.stateName === 'play' && !this.states.play.paused
-          && !this.states.play.ending) this.pauseToggle();
+      if (document.hidden) {
+        // pausing mid-play keeps the sim honest; the accumulator is dropped on return
+        if (this.stateName === 'play' && !this.states.play.paused
+            && !this.states.play.ending) this.pauseToggle();
+      } else {
+        this._last = performance.now();
+        this._acc = 0;
+      }
     });
+    // a lost focus must never leave a key "held"
+    window.addEventListener('blur', () => { this._acc = 0; this._last = performance.now(); });
 
     this.resize();
     this.state.enter();
     requestAnimationFrame((t) => this._frame(t));
+  }
+
+  // ---- settings (versioned localStorage, never fatal) ----
+  loadSettings() {
+    try {
+      const raw = localStorage.getItem(SETTINGS_KEY);
+      if (!raw) return;
+      const data = JSON.parse(raw);
+      if (data && data.v === 1) {
+        if (typeof data.sound === 'boolean') this.settings.sound = data.sound;
+        if (typeof data.shake === 'number') this.settings.shake = data.shake;
+        if (typeof data.qteEasy === 'boolean') this.settings.qteEasy = data.qteEasy;
+      }
+    } catch (e) { /* private mode / quota — defaults stay */ }
+  }
+  saveSettings() {
+    try { localStorage.setItem(SETTINGS_KEY, JSON.stringify({ v: 1, ...this.settings })); }
+    catch (e) { /* ignore */ }
+  }
+  setSetting(key, value) {
+    this.settings[key] = value;
+    this.saveSettings();
+    this.applySoundSetting();
+  }
+  applySoundSetting() {
+    if (this.audio.master) this.audio.master.gain.value = (this.audio.muted || !this.settings.sound) ? 0 : 0.35;
+  }
+
+  // ---- checkpoint (versioned localStorage, never fatal) ----
+  loadCheckpoint() {
+    try {
+      const raw = localStorage.getItem('rostam_checkpoint_v1');
+      if (!raw) return;
+      const cp = JSON.parse(raw);
+      if (cp && cp.v === 1 && cp.levelId === 'trial1') this.checkpoint = { levelId: cp.levelId, x: cp.x, y: cp.y };
+    } catch (e) { /* ignore */ }
+  }
+  saveCheckpoint(cp) {
+    this.checkpoint = cp;
+    try { localStorage.setItem('rostam_checkpoint_v1', JSON.stringify({ v: 1, ...cp })); }
+    catch (e) { /* ignore */ }
+  }
+  clearCheckpoint() {
+    this.checkpoint = null;
+    try { localStorage.removeItem('rostam_checkpoint_v1'); } catch (e) { /* ignore */ }
   }
 
   // ---- adaptive viewport: any aspect, mobile-first ----
@@ -118,6 +212,7 @@ export class Game {
 
   setState(name, params) {
     if (this.state && this.state.exit) this.state.exit();
+    this.input.clearPresses();      // no press may leak across a state change
     this.stateName = name;
     this.state = this.states[name];
     this.state.enter(params || {});
@@ -128,8 +223,10 @@ export class Game {
     return new Environment('dusk', 2400, 580, 11);
   }
 
-  startTrial(levelId) {
-    this.setState('play', { levelId });
+  startTrial(levelId, fromCheckpoint = false) {
+    const cp = fromCheckpoint && this.checkpoint && this.checkpoint.levelId === levelId
+      ? this.checkpoint : null;
+    this.setState('play', { levelId, checkpoint: cp });
   }
 
   callRakhsh() {
@@ -158,11 +255,14 @@ export class Game {
     play.paused = !play.paused;
     if (play.paused) {
       this.menus.show('pause');
-      // pausing mid-finisher backs the boss out of its stagger cleanly
+      // pausing must freeze EVERYTHING: QTE offer/window AND the slam cinematic
       const b = this.qte.abort();
       if (b && b.recoverFromStagger && !b.dead) b.recoverFromStagger();
+      this.director.abort();
     } else {
       this.menus.hideAll();
+      this._last = performance.now();   // do not fast-forward the accumulator
+      this._acc = 0;
     }
   }
 
@@ -193,6 +293,9 @@ export class Game {
     this.hud.bossHide();
     // drop a healing heart as the alpha's trophy
     if (play.world) play.world.spawnHeart(boss ? boss.x : play.player.x);
+    // unlock the checkpoint (immediately + persisted)
+    const cpDef = play.world.def.checkpoint;
+    if (cpDef) this.saveCheckpoint({ levelId: play.levelId, x: cpDef.x, y: cpDef.y });
     this._after(1.0, () => {
       this.dialogue.play('jackal_defeated', () => {
         if (play.world) play.world.unlockArena();
@@ -203,9 +306,10 @@ export class Game {
   onPlayerDead() {
     const play = this.states.play;
     play.ending = true;
-    // hard-stop any finisher offer/QTE and let the staggered boss back up
+    // hard-stop any finisher offer/QTE/cinematic and clean up both directors
     const ob = this.qte.abort();
     if (ob && ob.recoverFromStagger && !ob.dead) ob.recoverFromStagger();
+    this.director.abort();
     // dramatic death slow-mo, then the defeat screen
     this.timescale = 0.4;
     this._after(0.9, () => { this.timescale = 1; });
@@ -220,6 +324,7 @@ export class Game {
         player: play.player,
         elapsed: play.elapsed,
         hits: play.player.comboStats.hits,
+        levelId: play.levelId,
       });
     });
   }
@@ -262,6 +367,7 @@ export class Game {
 
   toggleMute() {
     const m = this.audio.toggleMute();
+    this.applySoundSetting();
     document.getElementById('mute-indicator').textContent = m ? '🔇 M — sound off' : '🔊 M — sound on';
     document.getElementById('mute-indicator').classList.toggle('hidden', false);
     document.getElementById('tb-mute').textContent = m ? '🔇' : '🔊';
@@ -270,15 +376,18 @@ export class Game {
 
   _after(sec, fn) { this._pending.push({ t: sec, fn }); }
 
-  // ---- main loop ----
+  // ---- main loop: fixed timestep sim + interpolated render ----
   _frame(now) {
     if (!this.running) return;
+    requestAnimationFrame((t) => this._frame(t));
+    const t0 = performance.now();
+
     let rawDt = (now - this._last) / 1000;
     this._last = now;
-    rawDt = Math.min(rawDt, 1 / 20);   // clamp big frame gaps (tab switch)
+    rawDt = Math.min(rawDt, 0.25);           // hard clamp (tab was hidden, debugger…)
     this.realDt = rawDt;
 
-    // delayed callbacks run on real time
+    // delayed callbacks run on REAL time (dialogue hand-offs, results timers)
     for (let i = this._pending.length - 1; i >= 0; i--) {
       this._pending[i].t -= rawDt;
       if (this._pending[i].t <= 0) {
@@ -287,12 +396,32 @@ export class Game {
       }
     }
 
-    // QTE timing must never slow down — it drives the slow-mo itself
+    // QTE + Director live on real time — slow-mo must never stretch their windows.
+    // Both self-abort if the play state went away (results / title).
     this.qte.update(rawDt);
     this.director.update(rawDt);
 
-    const dt = rawDt * this.timescale;
-    this.state.update(dt);
+    // ---- fixed-step simulation ----
+    const t1 = performance.now();
+    this._acc = Math.min(this._acc + rawDt, MAX_STEPS * STEP);
+    let steps = 0;
+    while (this._acc >= STEP && steps < MAX_STEPS) {
+      this._acc -= STEP;
+      steps++;
+      const dt = STEP * this.timescale;
+      this.alpha = 0;
+      // update() returns false when the step consumed no gameplay input
+      // (paused / dialogue / hitstop / QTE-freeze) — the input buffer then
+      // keeps fresh presses alive for INPUT_KEEP_MS instead of dropping them
+      const processed = this.state.update(dt) !== false;
+      this.input.endStep(processed);
+    }
+    if (this._acc >= STEP) {            // backlog beyond the cap — drop it
+      this.stats.stepsDropped++;
+      this._acc = 0;
+    }
+    this.alpha = Math.min(1, this._acc / STEP);   // render interpolation alpha
+    const t2 = performance.now();
 
     // touch UI context
     this.touch.poll();
@@ -308,8 +437,18 @@ export class Game {
       this.fxCtx.setTransform(s, 0, 0, s, 0, 0);
       this.fxCtx.clearRect(0, 0, this.viewW, this.viewH);
     }
+    const t3 = performance.now();
 
-    this.input.endFrame();
-    requestAnimationFrame((t) => this._frame(t));
+    // rolling stats (1s window)
+    const st = this._statAcc;
+    st.frames++; st.t += rawDt; st.sim += (t2 - t1); st.draw += (t3 - t2);
+    if (st.t >= 1) {
+      this.stats.fps = Math.round(st.frames / st.t);
+      this.stats.frameMs = +(st.t / st.frames * 1000).toFixed(2);
+      this.stats.simMs = +(st.sim / st.frames).toFixed(3);
+      this.stats.drawMs = +(st.draw / st.frames).toFixed(3);
+      this.stats.steps = steps;
+      st.frames = 0; st.t = 0; st.sim = 0; st.draw = 0;
+    }
   }
 }

@@ -17,10 +17,12 @@
 <div align="center">
 
 > **EN** — An epic **frame-by-frame** action game about **Rostam**, the legendary hero of Ferdowsi's *Shahnameh*.
-> Every hero and beast is a set of **hand-painted sprite-sheet frames** (no skeletal rigging at runtime) fighting inside a **hand-painted 2D world** — Trial I (**The Lion**) is fully playable in your browser, on **desktop or phone**, at a locked **60fps**.
+> Every hero and beast is a set of **hand-painted sprite-sheet frames** (no skeletal rigging at runtime) fighting inside a **hand-painted 2D world** — Trial I (**The Lion**) is fully playable in your browser, on **desktop or phone**, on a **fixed-timestep 60Hz simulation** with render interpolation.
 
 > **FA** — یک بازی اکشن **فریم‌به‌فریم** حماسی درباره‌ی **رستم**، پهلوان شاهنامه‌ی فردوسی.
-> قهرمان‌ها و هیولاها **انیمیشن فریم‌به‌فریم** با شیت‌های نقاشی‌شدهٔ دستی هستند (بدون ریگ‌بندی در زمان اجرا) و در دنیای دوبعدیِ نقاشی‌شده می‌جنگند — خوانِ اوّل (**شیر**) به‌طور کامل در مرورگر قابل بازی است — روی **دسکتاپ و موبایل** — با قفل **۶۰ فریم‌برثانیه**.
+> قهرمان‌ها و هیولاها **انیمیشن فریم‌به‌فریم** با شیت‌های نقاشی‌شده هستند (بدون ریگ‌بندی در زمان اجرا) و در دنیای دوبعدیِ نقاشی‌شده می‌جنگند — خوانِ اوّل (**شیر**) کامل در مرورگر قابل بازی است — روی **دسکتاپ و موبایل** — با **شبیه‌سازی گام-ثابت ۶۰هرتز** و رندر درون‌یابی‌شده.
+
+> ⚠️ **اقتباس آزاد**: این بازی بازآفرینی آزادِ خوانِ اوّل شاهنامه است؛ در متنِ شاهنامه در خوان نخست، **رخش** شیر را می‌کشد و رستم خواب است. نبرد مستقِم رستم و شیرِ این بازی، اقتباسی آزاد است — نه نقل دقیق. مرجعِ سرآغازِ روایت: [ابیات خوان اوّل (گنجور)](https://ganjoor.net/ferdousi/shahname/kkavoos/sh5).
 
 </div>
 
@@ -74,12 +76,13 @@ When a **mini-boss or boss** is worn down to its threshold, it drops to its knee
 | `←` `→` / `A` `D` | Move / حرکت |
 | `Z` / `Space` | Jump · advance dialogue / پرش · رد کردن دیالوگ |
 | `X` | Mace combo (chain 3 hits) / ضربه‌ی سه‌تایی گرز |
-| `C` (hold) | Charge & release arrow / نشانه‌گیری و شلیک تیر |
-| `V` | **Dodge roll** (i-frames) / **غلتک** (مصونیت لحظه‌ای) |
-| `Shift` / `E` | Call Rakhsh / فراخوان رخش |
+| `C` (hold) | Charge & release arrow — quick tap = quick shot / نشانه‌گیری: کوتاه = تیر سریع، نگه‌داشتن = تیر شارژشده |
+| `V` | **Dodge roll** (i-frames, cancels attack recovery) / **غلتک** (مصونیت + لغو بازیابی حمله) |
+| `Shift` / `E` | Call Rakhsh (speed + **trample**) / فراخوان رخش (سرعت + سُم‌کوبی) |
 | `F` | **Finisher** (on a staggered boss) / **ضربهٔ نهایی** |
-| `Esc` | Pause / توقف |
+| `Esc` | Pause (settings inside) / توقف (تنظیمات داخل منو) |
 | `M` | Mute / بی‌صدا |
+| `C` (on title) | Continue from checkpoint / ادامه از ایست بازرسی |
 
 **Mobile / موبایل** — on-screen buttons: `◀ ▶` move · `⤒` jump · `⚔` mace · `🏹` bow · `🌀` roll · `🐎` Rakhsh · `⏸ 🔊 ⛶` system — plus the golden **FINISH** button and QTE pads when a boss kneels.
 
@@ -98,6 +101,11 @@ python -m http.server 8000
 
 **On your phone:** open the same URL (or the GitHub Pages link) in any mobile browser — the touch UI appears automatically.
 
+### Progress persistence | ماندگاری
+- **Checkpoint** پس از شکست باس میانی ذخیره می‌شود؛ شکست → «تلاش مجدد از ایست بازرسی».
+- **تنظیمات** (صدا، شدت لرزش، QTE آسان) روی صفحهٔ pause — هر دو با کلید نسخه‌دار localStorage و مدیریت خطا.
+- URL param `?seed=123` — شبیه‌سازی gameplay را deterministic می‌کند (برای آزمون تکرارپذیر).
+
 ## 📁 Architecture | معماری ماژولار
 
 ```
@@ -105,14 +113,14 @@ The-Great-Rostam/
 ├── index.html                  # stage: painted 2D world canvas → sprite heroes → fx canvas + DOM UI
 ├── css/style.css               # mobile-first responsive UI (safe-area, adaptive HUD)
 ├── js/
-│   ├── main.js                 # entry point + test hooks
+│   ├── main.js                 # entry point + test hooks (window.__rostam / __rd)
 │   ├── qte.js                  # ⚔ finisher system: offer → ring QTE → cinematic slam / enrage
 │   ├── core/
-│   │   ├── game.js             # loop, state machine, adaptive viewport, sprite bank boot
-│   │   ├── input.js            # action-mapped keyboard + virtual touch buttons
-│   │   ├── camera.js           # smooth follow, shake, cinematic zoom
+│   │   ├── game.js             # FIXED-TIMESTEP loop (1/60 + accumulator + alpha), states, viewport
+│   │   ├── input.js            # buffered action-mapped input (hitstop-safe, consume-once)
+│   │   ├── camera.js           # smooth follow, shake, zoom, interpolation + view rect
 │   │   ├── audio.js            # procedural WebAudio SFX (incl. QTE + slam)
-│   │   └── utils.js            # math, easing, seeded RNG
+│   │   └── utils.js            # math, easing, seeded RNG (mulberry32)
 │   ├── gfx/
 │   │   ├── sprites.js          # 🎞 frame-by-frame sprite bank: manifest loader, progress-locked
 │   │   │                       #    playback, flash/tint compositing, alias clips (bow/jump subranges)
@@ -129,34 +137,52 @@ The-Great-Rostam/
 │   │   ├── enemies.js          # Jackal · WhiteJackal (mini-boss) · Lion (boss) — stagger/enrage
 │   │   └── projectiles.js      # arrows
 │   ├── world/
-│   │   └── world.js            # physics, props, triggers, pickups (arrows + hearts)
+│   │   └── world.js            # AABB physics (one-way vs solid), props, triggers, pickups
 │   ├── ui/
 │   │   ├── hud.js              # hearts/arrows/cooldown/boss bar
 │   │   ├── touch.js            # virtual controls, context switching, fullscreen, rotate hint
 │   │   ├── dialogue.js         # typewriter dialogue system
-│   │   └── menus.js            # title/pause/victory/defeat
+│   │   └── menus.js            # title/pause(+settings)/victory/defeat
 │   └── states/
 │       ├── title.js  ├── play.js  └── results.js
+├── tools/
+│   └── animation-lab.html      # 🎞 sprite-sheet viewer + asset validator (runs on real sheets)
+├── scripts/
+│   └── node-logic-tests.mjs    # 20 engine logic tests (no browser needed)
 └── docs/
+    ├── AUDIT.md                # 🔍 evidence-based audit: severity/repro/cause/fix/regression
+    ├── ASSET_PIPELINE.md       # sheet specs, loading contract, validation, missing assets
+    ├── IMPLEMENTATION_STATUS.md# done / open / risks / next steps
     ├── GAME_DESIGN.md          # full design document (finisher, mobile & 2.5D renderer design)
     ├── MESHY_PROMPTS.md        # 🎨 ready-to-paste Meshy prompts for every character
-    └── screenshots/            # gameplay captures
+    ├── screenshots/            # gameplay captures
+    └── screenshots-test/       # automated browser-test captures (before/after evidence)
 ```
 
 **Add a new trial in 3 steps:** a new entry in `levels.js` → a new palette in `parallax.js` → new dialogue in `dialogues.js`. Bosses declare their finisher in the level data (`finisherPrompts`, threshold) — the QTE engine handles the rest.
 
 ## 🎞 Sprite-Sheet Pipeline — خط تولید شیت‌های فریم‌به‌فریم
 
-Every character's animations are **pre-drawn frames** in `assets/sprites/<char>/<clip>/fN.png` + `manifest.json`. The runtime (`js/gfx/sprites.js`) picks the frame whose normalized progress matches the combat state machine — **no rigging, no skeletal animation at runtime; just a blit**.
+Every character's animations are **pre-drawn frames** packed as one sheet per clip: `assets/sprites/<char>/<clip>.png` (6×5 grid = 30 frames) + `manifest.json`. The runtime (`js/gfx/sprites.js`) picks the frame whose normalized progress matches the combat state machine — **no rigging, no skeletal animation at runtime; just a blit**. Roll & death motion is **baked into the frames** — no runtime rotation is stacked on top.
 
-How the art is produced (tooling in `scripts/`):
-1. **One canonical sheet** per character is generated first (6-cell grid on flat magenta)
-2. **Every other clip is AI image-edit derived from that canonical sheet** — the character never drifts off-model
-3. A build script chroma-keys the background, wipes grid junk, splits figures (adaptive erosion + valley cuts), feet-anchors frames and emits the manifest
+**Loading contract (honest fallback):** staged per-character loading; a failed sheet is retried once, recorded, and reported — a half-loaded character falls back to the **legacy procedural painters** as a whole, never invisible. Missing manifest ⇒ fully procedural game.
 
-> Optional comeback path: the dormant `assets/meshy/` GLB drop-in loader can still bring AI **3D** models back later — prompts in [docs/MESHY_PROMPTS.md](docs/MESHY_PROMPTS.md).
+**Validate & inspect:** open `tools/animation-lab.html` (served from the repo root) — frame stepping, speed, flip, onion-skin, feet pivot, body/hurt/hit boxes, and a full asset validation pass (real image sizes vs manifest, blank-frame detection, feet-anchor check).
 
-*Character art AI-generated & AI-edited (z-ai), art-directed for the game's Persian miniature palette.*
+> Provenance of the current sheets: AI-generated & AI-edited (z-ai), art-directed for the game's Persian miniature palette. The sheet **build script of that earlier step is not part of this repository** — what IS reproducible here is the full validation tooling, the manifest mapping, and the fallback behavior (see [docs/ASSET_PIPELINE.md](docs/ASSET_PIPELINE.md)).
+>
+> Optional comeback path: the dormant `assets/meshy/` GLB drop-in loader can still bring AI **3D** models back later — prompts in [docs/MESHY_PROMPTS.md](docs/MESHY_PROMPTS.md) (note: `js/gfx/gl3d.js` is currently not wired into the module graph — dead code kept intentionally).
+
+## ✅ Quality & docs | کیفیت و مستندات
+
+- **Engine audit** با شواهد، بازتولید، علت، اصلاح و آزمون رگرسیون: [docs/AUDIT.md](docs/AUDIT.md)
+- **وضعیت پیاده‌سازی** (انجام‌شده/باز/ریسک/قدم بعد): [docs/IMPLEMENTATION_STATUS.md](docs/IMPLEMENTATION_STATUS.md)
+- **خط تولید دارایی**: [docs/ASSET_PIPELINE.md](docs/ASSET_PIPELINE.md)
+- **آزمون‌های منطق (Node, بدون مرورگر):** `node scripts/node-logic-tests.mjs` — تعیین‌پذیری شبیه‌سازی، برخورد one-way/solid، تیر swept، زنجیرهٔ triple باس میانی، بازنشانی Director، اصطکاک knockback، بافر ورودی
+- **آزمون مرورگر:** قلاب‌های `window.__rd` (مسیر واقعی بازی، بدون shortcut پیروزی) + اسکرین‌شات‌های `docs/screenshots-test/`
+- محیط اندازه‌گیری آخرین اجرا: headless Chromium 144، localhost، 1280×720 — **58–60 FPS، simMs≈۰٫۵۸، drawMs≈۰٫۱۶** (`__rostam.stats` زنده)
+
+---
 
 ## 🗺 Roadmap | نقشه راه
 

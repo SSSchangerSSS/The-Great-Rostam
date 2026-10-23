@@ -40,6 +40,14 @@ export const DIALOGUES = {
     },
   ],
 
+  checkpoint_resume: [
+    {
+      speaker: 'narrator',
+      fa: 'پهلوان بر آستانهٔ لانهٔ شیر بازایستاد — رخش، سُم بر خاک می‌کوبد. (اقتباس آزاد از شاهنامه؛ نبردِ رستم و شیر در این بازی بازآفرینی آزادِ خوانِ اوّل است.)',
+      en: 'The paladin stands again at the lion\u2019s threshold — Rakhsh drums the earth. (A free adaptation: this duel reimagines the First Trial of the Shahnameh.)',
+    },
+  ],
+
   pre_jackal: [
     {
       speaker: 'narrator',

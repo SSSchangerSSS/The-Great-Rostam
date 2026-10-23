@@ -1,4 +1,5 @@
 // title.js — title state: ambient desert scene + sprite-sheet heroes (adaptive layout)
+// v2: "continue from checkpoint" (C key / tap) when a saved checkpoint exists
 import { TAU } from '../core/utils.js';
 import { ROSTAM_RIG, ROSTAM_CLIPS, ROSTAM_HIP_H } from '../content/rigs.js';
 import { RAKHSH_RIG, RAKHSH_CLIPS } from '../content/rigs.js';
@@ -21,17 +22,39 @@ export class TitleState {
         ? '— TAP TO START / برای شروع لمس کن —'
         : '— PRESS ENTER / اینتر —';
     }
+    // checkpoint continue affordance (only when one actually exists)
+    const cont = document.getElementById('title-continue');
+    if (cont) {
+      const cp = this.game.checkpoint;
+      cont.classList.toggle('hidden', !cp);
+      if (cp) {
+        cont.textContent = this.game.isTouch
+          ? '⤴ ادامه از ایست بازرسی (لمس)'
+          : '⤴ CONTINUE from checkpoint — کلید C';
+      }
+    }
   }
 
   update(dt) {
     this.t += dt;
     const g = this.game;
-    if (g.input.justPressed('confirm') || g.input.justPressed('advance')) {
+    const wantsContinue = g.input.codeJustPressed('KeyC') || this._continueTap;
+    this._continueTap = false;
+    if (wantsContinue && g.checkpoint) {
+      g.input.consume('advance'); g.input.consume('confirm'); g.input.consume('bow');
       g.audio.init();
       g.audio.play('ui');
+      g.startTrial(g.checkpoint.levelId, true);
+      return;
+    }
+    if (g.input.justPressed('confirm') || g.input.justPressed('advance')) {
+      g.input.consume('advance'); g.input.consume('confirm');
+      g.audio.init();
+      g.audio.play('ui');
+      g.clearCheckpoint();          // a fresh game forgets the old checkpoint
       g.setState('play', { levelId: 'trial1' });
     }
-    if (g.input.justPressed('mute')) g.toggleMute();
+    if (g.input.justPressed('mute')) { g.input.consume('mute'); g.toggleMute(); }
   }
 
   draw(ctx) {

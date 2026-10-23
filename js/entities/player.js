@@ -1,24 +1,44 @@
-// player.js — Rostam: movement, 3-hit mace combo (Shank-style lunges), bow,
-// dodge roll with i-frames, air attack, Rakhsh mount, health.
+// player.js — Rostam: movement, 3-hit mace combo (Shank-style lunges), charged bow,
+// dodge roll with i-frames, air attack, Rakhsh mount w/ trample, health.
 //
-// FIXED: the "ice-skate" bug — hurt/dead states now own a timer AND apply
-// friction every frame, so knockback velocity bleeds off instead of sliding
-// the hero across the map forever.
+// v2 (fixed-timestep + combat contract):
+//   • px/py = real previous position saved BEFORE integration (used by collision
+//     AND by render interpolation) — never reconstructed from an assumed dt
+//   • collision body (w/h), hurtbox (smaller, what enemies hit) and hitbox
+//     (attack reach) are three separate, deliberately sized concepts
+//   • every attack execution gets an id + a hit-set: one enemy is damaged at
+//     most once per swing (multi-hit moves must define it explicitly)
+//   • early attack presses live in attackBuf (120ms) — pressing slightly early
+//     chains the combo instead of cancelling the swing before its active frames
+//   • roll & death motion is BAKED into the sprite sheets — the sprite draw
+//     path adds NO runtime rotation (legacy procedural fallback still does,
+//     because the rig clip carries only the tuck, not the full spin)
 import { clamp, rectsOverlap } from '../core/utils.js';
 import { Rig, Animator } from '../gfx/rig.js';
 import { ROSTAM_RIG, ROSTAM_CLIPS, ROSTAM_HIP_H } from '../content/rigs.js';
 import { paintRostam } from '../gfx/paint.js';
 
 const MOVE = 330, JUMP_V = -830, GRAV = 2500;
-const ATTACK_BOX = { w: 88, h: 62 };
+const ATTACK_BOX = { w: 88, h: 62 };                 // melee hitbox (reach)
 const FIRE_AT = { attack1: 0.52, attack2: 0.5, attack3: 0.46, airAttack: 0.4 };
 const LUNGE = { attack1: 210, attack2: 190, attack3: 260, airAttack: 0 };
 const ROLL_V = 470, ROLL_TIME = 0.34, ROLL_CD = 0.5;
+const JUMP_BUFFER = 0.12;        // 120ms jump buffering
+const COYOTE_TIME = 0.09;        // 90ms coyote time
+const ATTACK_BUFFER = 0.12;      // 120ms combo chain buffering
+const COMBO_WINDOW = 0.10;       // chain opens once the strike lands (progress ≥ fire)
+const BOW_ANCHOR = { x: 30, y: 44 };              // arrow exit, feet-relative
+const BOW_QUICK = { speed: 700, dmg: 2 };         // tap shot
+const BOW_CHARGED = { speed: 980, dmg: 5 };       // held shot (≥ BOW_CHARGE_MIN)
+const BOW_CHARGE_MIN = 0.55;
+const BOW_CHARGE_MAX = 1.4;
+const TRAMPLE_CD = 0.8;          // per-enemy trample immunity window
 
 export class Player {
   constructor(game) {
     this.game = game;
-    this.w = 34; this.h = 62;          // collision box (feet origin at y+h)
+    this.w = 34; this.h = 62;          // collision body (feet origin at y)
+    this.hurtW = 28; this.hurtH = 56;  // hurtbox: slightly forgiving vs the body
     this.reset(100, 500);
     this.rig = new Animator(ROSTAM_CLIPS);
     this.maxHp = 5; this.hp = 5;
@@ -32,16 +52,19 @@ export class Player {
 
   reset(x, y) {
     this.x = x; this.y = y;            // y = feet position
+    this.px = x; this.py = y;          // previous position (collision + interp)
     this.yOff = 0;                     // cinematic vertical offset (finisher leap)
     this.vx = 0; this.vy = 0;
-    this.onGround = false;
+    this.onGround = false; this.onGround_ = false;
     this.facing = 1;
     this.state = 'idle';               // idle|run|jump|fall|land|attack|airAttack|bow|roll|hurt|dead|mount|qte|cine
-    this.attackPhase = null;           // {name, hitDone}
-    this.bowCharge = 0;
+    this.attackPhase = null;           // {name, id, hitDone, hitSet, lunged}
+    this.attackBuf = 0;                // early press buffer for combo chaining
+    this.attackSeq = 0;                // increments per attack execution
+    this.bowCharge = 0; this._bowChargedFx = false;
     this.invuln = 0;
     this.flashT = 0;                   // white hit-flash
-    this.hurtT = 0;                    // ← the anti-skate timer
+    this.hurtT = 0;                    // hurt-state timer (anti-skate)
     this.rollT = 0; this.rollCd = 0; this.rollDir = 1; this._rollGhostT = 0;
     this.landT = 0;
     this.coyote = 0; this.jumpBuf = 0;
@@ -50,7 +73,12 @@ export class Player {
     this.deathDir = 1; this.deadT = 0;
   }
 
-  hurtbox() { return { x: this.x - this.w / 2, y: this.y - this.h, w: this.w, h: this.h }; }
+  // hurtbox — what ENEMIES damage; deliberately a bit smaller than the
+  // collision body so grazes read fair against the drawn silhouette
+  hurtbox() {
+    const cx = this.x, dy = (this.h - this.hurtH);   // keep the feet line shared
+    return { x: cx - this.hurtW / 2, y: this.y - this.hurtH, w: this.hurtW, h: this.hurtH };
+  }
 
   hurt(dmg, fromDir, game) {
     if (this.invuln > 0 || this.state === 'dead' || this.state === 'qte' || this.state === 'cine' || this.state === 'roll') return;
@@ -58,11 +86,12 @@ export class Player {
     this.invuln = 1.05;
     this.flashT = 0.13;
     this.chain = 0;                          // pain breaks the chain
-    this.hurtT = 0.42;                       // state auto-expires now
+    this.hurtT = 0.42;                       // state auto-expires
+    this.attackPhase = null;
+    this.attackBuf = 0;
     this.vx = -fromDir * 300;
     this.vy = this.onGround ? -150 : -240;
     this.state = 'hurt';
-    this.attackPhase = null;
     this.mounted = false;
     this.rig.play('hurt', { restart: true });
     game.audio.play('hurt');
@@ -87,7 +116,9 @@ export class Player {
   // ---------- actions ----------
   startAttack(name) {
     this.state = name === 'airAttack' ? 'airAttack' : 'attack';
-    this.attackPhase = { name, hitDone: false };
+    this.attackSeq++;
+    this.attackPhase = { name, id: this.attackSeq, hitDone: false, hitSet: new Set(), lunged: false };
+    this.attackBuf = 0;
     this.rig.play(name, { restart: true, onFinish: () => {
       if (this.attackPhase && this.attackPhase.name === name) {
         this.state = this.onGround ? 'idle' : 'fall';
@@ -107,6 +138,7 @@ export class Player {
     this.invuln = Math.max(this.invuln, ROLL_TIME + 0.04);   // i-frames through the tumble
     this.rollCd = ROLL_CD;
     this.attackPhase = null;
+    this.attackBuf = 0;
     this.rig.play('roll', { restart: true, onFinish: () => { if (this.state === 'roll') this.state = 'idle'; } });
     this.game.audio.play('pounce');
     this.game.particles.burst(this.x, this.y - 4, 6, { speed: 90, life: 0.35, size: 3, color: ['#c9b890', '#8a6d4a'], grav: -60 });
@@ -131,8 +163,9 @@ export class Player {
     };
     let hitAny = false;
     for (const e of enemies) {
-      if (e.dead) continue;
+      if (e.dead || this.attackPhase.hitSet.has(e)) continue;
       if (rectsOverlap(box, e.hurtbox())) {
+        this.attackPhase.hitSet.add(e);          // one damage per enemy per swing
         const dmg = name === 'attack3' ? 4 : 2;
         if (e.hurt(dmg, this.facing, this.game) !== false) {
           hitAny = true;
@@ -161,9 +194,11 @@ export class Player {
     if (this.ghosts.length > 8) this.ghosts.shift();
     this.ghosts.push({
       pose: { ...this.rig.pose() },
-      clip: this.rig.name, frame: this.rig.progress,   // for baked-frame ghosts (2.5D)
+      clip: this.rig.name, frame: this.rig.progress,   // for baked-frame ghosts
       x: this.x, y: this.y, yOff: this.yOff || 0,
       facing: this.facing, a: alpha,
+      // rot is ONLY used by the legacy procedural path (see draw) — the sprite
+      // sheets already carry the roll spin in their frames
       rot: this.state === 'roll' ? this._rollRot() : 0,
     });
   }
@@ -171,18 +206,19 @@ export class Player {
     return this.rollDir * (this.rig.name === 'roll' ? this.rig.progress : 0) * Math.PI * 2;
   }
 
-  // ---------- per-frame ----------
+  // ---------- per-frame (one fixed sim step) ----------
   update(dt, world, input) {
     // frozen during finisher QTE & cinematic — rigs are driven by the play state
-    if (this.state === 'qte' || this.state === 'cine') return;
+    if (this.state === 'qte' || this.state === 'cine') return false;
     const g = this.game;
     if (this.invuln > 0) this.invuln -= dt;
     if (this.flashT > 0) this.flashT -= dt;
     if (this.rakhshCd > 0) this.rakhshCd = Math.max(0, this.rakhshCd - dt);
     if (this.rollCd > 0) this.rollCd -= dt;
     if (this.jumpBuf > 0) this.jumpBuf -= dt;
+    if (this.attackBuf > 0) this.attackBuf -= dt;
     if (this.chainT > 0) { this.chainT -= dt; if (this.chainT <= 0) this.chain = 0; }
-    this.coyote = this.onGround ? 0.09 : Math.max(0, this.coyote - dt);
+    this.coyote = this.onGround ? COYOTE_TIME : Math.max(0, this.coyote - dt);
 
     // squash & stretch spring (Flash bounce)
     this.sqV += (-this.sq * 210 - this.sqV * 13) * dt;
@@ -203,7 +239,7 @@ export class Player {
 
     if (!dead) {
       if (this.state === 'hurt') {
-        // ★ THE SKATE FIX: friction bleeds knockback; timer ends the state
+        // friction bleeds knockback; timer ends the state (no ice-skating)
         this.hurtT -= dt;
         this.vx *= this.onGround ? Math.pow(1e-9, dt) : Math.pow(0.3, dt);
         if (this.hurtT <= 0) { this.state = this.onGround ? 'idle' : 'fall'; }
@@ -215,9 +251,7 @@ export class Player {
         if (this._rollGhostT <= 0) { this._rollGhostT = 0.045; this.pushGhost(0.4); }
         const k = 1 - clamp(this.rollT / ROLL_TIME, 0, 1);
         this.vx = this.rollDir * ROLL_V * (0.55 + 0.45 * k);
-        if (input.justPressed('jump') && (this.onGround || this.coyote > 0)) {
-          this.jumpBuf = 0.12;
-        }
+        if (input.justPressed('jump')) this.jumpBuf = JUMP_BUFFER;
         if (this.jumpBuf > 0 && (this.onGround || this.coyote > 0) && this.rig.progress > 0.55) {
           this.jumpBuf = 0; this.doJump();
         }
@@ -234,17 +268,20 @@ export class Player {
         } else {
           this.vx *= Math.pow(0.5, dt);
         }
-        // chain into next combo hit (window opens right after the strike)
-        if (this.state === 'attack' && this.attackPhase && input.justPressed('attack')
-            && this.rig.progress > fire - 0.04 && name !== 'attack3') {
-          const next = { attack1: 'attack2', attack2: 'attack3' }[name];
-          if (next) this.startAttack(next);
+        // chain into the next combo hit — early presses buffer, never cancel
+        if (this.state === 'attack' && this.attackPhase && input.justPressed('attack') && name !== 'attack3') {
+          this.attackBuf = ATTACK_BUFFER;
         }
-        // roll-cancel after the strike lands
-        if (this.attackPhase && this.attackPhase.hitDone && input.justPressed('roll') && this.onGround) {
-          const dir = input.down('left') ? -1 : input.down('right') ? 1 : this.facing;
-          this.startRoll(dir);
-        } else if (input.justPressed('roll') && this.onGround && this.state !== 'attack') {
+        if (this.state === 'attack' && this.attackPhase && this.attackBuf > 0
+            && this.rig.name === name && this.rig.progress >= fire && name !== 'attack3') {
+          const next = { attack1: 'attack2', attack2: 'attack3' }[name];
+          if (next) { this.attackBuf = 0; this.startAttack(next); }
+        }
+        // roll-cancel: after the strike (active frames), regardless of hit
+        if (input.justPressed('roll') && this.onGround
+            && this.attackPhase && this.rig.progress >= fire) {
+          this.startRoll(input.down('left') ? -1 : input.down('right') ? 1 : this.facing);
+        } else if (input.justPressed('roll') && this.onGround && this.state !== 'attack' && this.state !== 'airAttack') {
           this.startRoll(input.down('left') ? -1 : input.down('right') ? 1 : this.facing);
         }
       } else if (this.state === 'bow') {
@@ -259,15 +296,30 @@ export class Player {
           this.rig.play('bowDraw', { restart: true });
         }
         if (this.rig.name !== 'bowShot') {
-          const charged = this.bowCharge > 0.25;
           const released = !input.down('bow');
-          if ((charged && released) || this.bowCharge > 1.4) {
+          const charged = this.bowCharge >= BOW_CHARGE_MIN;
+          if (charged && !this._bowChargedFx) {
+            this._bowChargedFx = true;   // one-shot "fully drawn" cue
+            g.audio.play('ui');
+            g.particles.burst(this.x + this.facing * 26, this.y - BOW_ANCHOR.y, 5,
+              { speed: 40, life: 0.3, size: 2, color: '#ffd700', glow: true, grav: -40 });
+          }
+          if ((released && this.bowCharge > 0.12) || this.bowCharge > BOW_CHARGE_MAX) {
+            const spec = charged ? BOW_CHARGED : BOW_QUICK;
             if (this.arrows > 0) {
               this.arrows--;
-              g.arrows.shoot(this.x + this.facing * 30, this.y - 44, this.facing, 780, g);
-              g.particles.burst(this.x + this.facing * 30, this.y - 44, 4, { speed: 60, life: 0.25, size: 2.2, color: '#e8dcc8', grav: 0 });
+              g.arrows.shoot(this.x + this.facing * BOW_ANCHOR.x, this.y - BOW_ANCHOR.y,
+                this.facing, spec.speed, g, spec.dmg);
+              if (charged) {
+                g.particles.sparkBurst(this.x + this.facing * 34, this.y - BOW_ANCHOR.y, this.facing);
+                g.audio.play('qteGood');
+                g.camera.shake(2.2, 0.1);
+              } else {
+                g.particles.burst(this.x + this.facing * BOW_ANCHOR.x, this.y - BOW_ANCHOR.y, 4,
+                  { speed: 60, life: 0.25, size: 2.2, color: '#e8dcc8', grav: 0 });
+              }
             }
-            this.bowCharge = 0;
+            this.bowCharge = 0; this._bowChargedFx = false;
             this.rig.play('bowShot', { restart: true, onFinish: () => { if (this.state === 'bow') { this.state = 'idle'; } } });
             g.hud.sync(this);
           }
@@ -290,12 +342,29 @@ export class Player {
         if (input.justPressed('jump') && this.onGround) {
           this.vy = JUMP_V * 0.95; this.onGround = false; this.coyote = 0; g.audio.play('jump');
         }
+        // Rakhsh trample: the tactical point of mounting — charge THROUGH a pack
+        if (Math.abs(this.vx) > 220) {
+          for (const e of g.enemies) {
+            if (e.dead || !e.hurtbox) continue;
+            if ((e._trampleT || 0) > 0) continue;
+            if (rectsOverlap(this.hurtbox(), e.hurtbox())) {
+              e._trampleT = TRAMPLE_CD;
+              if (e.hurt(2, this.facing, g) !== false) {
+                g.particles.sparkBurst(e.x, e.y - (e.h || 30) * 0.6, this.facing);
+                g.audio.play('hit');
+                g.camera.shake(4.5, 0.14);
+                g.hitstop = Math.max(g.hitstop, 0.03);
+                this.comboStats.hits++;
+              }
+            }
+          }
+        }
         if (this.mountTimer <= 0) this.dismount();
       } else { // idle / run / jump / fall — full control
         this.vx = 0;
         if (input.down('left')) { this.vx = -MOVE; this.facing = -1; }
         if (input.down('right')) { this.vx = MOVE; this.facing = 1; }
-        if (input.justPressed('jump')) this.jumpBuf = 0.12;
+        if (input.justPressed('jump')) this.jumpBuf = JUMP_BUFFER;
         if (this.jumpBuf > 0 && (this.onGround || this.coyote > 0)) { this.jumpBuf = 0; this.doJump(); }
         // actions
         if (this.state !== 'bow') {
@@ -303,7 +372,7 @@ export class Player {
             this.startAttack(this.onGround ? 'attack1' : 'airAttack');
           } else if (input.down('bow') && this.arrows > 0 && this.onGround) {
             this.state = 'bow';
-            this.bowCharge = 0;
+            this.bowCharge = 0; this._bowChargedFx = false;
             this.rig.play('bowDraw', { restart: true });
           } else if (input.justPressed('roll') && this.onGround) {
             this.startRoll(input.down('left') ? -1 : input.down('right') ? 1 : this.facing);
@@ -319,21 +388,25 @@ export class Player {
     // variable jump height: release early → softer arc (great for touch taps)
     if (!dead && this.vy < -300 && !input.down('jump')) this.vy += GRAV * 1.7 * dt;
 
-    // physics
+    // ---- physics: save REAL previous position, then integrate ----
     const prevOnGround = this.onGround;
     const impactVy = this.vy;
+    this.px = this.x; this.py = this.y;
     this.vy += GRAV * dt;
     this.x += this.vx * dt;
     this.y += this.vy * dt;
     this.x = clamp(this.x, world.camMinX() + 20, world.camMaxX() - 20);
     world.collide(this);
 
+    // decay per-enemy trample immunity
+    for (const e of g.enemies) { if (e._trampleT > 0) e._trampleT -= dt; }
+
     // dead: bleed velocity too (corpse must NOT skate either)
     if (dead) {
       this.vx *= Math.pow(1e-8, dt);
       this.deadT += dt;
       this.rig.update(dt);
-      return;
+      return true;
     }
 
     // landing event: dust + squash + land pose
@@ -398,6 +471,7 @@ export class Player {
       }
     }
     this.rig.update(dt);
+    return true;
   }
 
   doJump() {
@@ -422,43 +496,37 @@ export class Player {
     this.game.hud.sync(this);
   }
 
-  draw(ctx, cam) {
+  // render position (interpolated between sim steps)
+  ix(a) { const t = a || 0; return this.px + (this.x - this.px) * t; }
+  iy(a) { const t = a || 0; return this.py + (this.y - this.py) * t; }
+
+  draw(ctx, cam, a = 0) {
     const spr = this.game.sprites;
-    if (spr && spr.ready && spr.has('rostam')) {
+    const x = this.ix(a), y = this.iy(a);
+    const useSprites = spr && spr.ready && spr.has('rostam');
+
+    if (useSprites) {
       // ---- frame-by-frame sprite path (no rigging) ----
+      // ghost afterimages — the roll spin is BAKED in the frames: no gh.rot here
       for (const gh of this.ghosts) {
-        if (gh.rot) {
-          ctx.save();
-          ctx.translate(gh.x, gh.y - 30);
-          ctx.rotate(gh.rot);
-          ctx.translate(-gh.x, -(gh.y - 30));
-          spr.draw(ctx, 'rostam', gh.clip || 'idle', gh.frame || 0, gh.x, gh.y,
-            { facing: gh.facing, alpha: gh.a, yOff: gh.yOff || 0 });
-          ctx.restore();
-        } else {
-          spr.draw(ctx, 'rostam', gh.clip || 'idle', gh.frame || 0, gh.x, gh.y,
-            { facing: gh.facing, alpha: gh.a, yOff: gh.yOff || 0 });
-        }
+        spr.draw(ctx, 'rostam', gh.clip || 'idle', gh.frame || 0, gh.x, gh.y,
+          { facing: gh.facing, alpha: gh.a, yOff: gh.yOff || 0 });
       }
       ctx.save();
       const sy = 1 + this.sq, sx = 1 - this.sq * 0.7;
-      ctx.translate(this.x, this.y);
+      ctx.translate(x, y);
       ctx.scale(sx, sy);
-      ctx.translate(-this.x, -this.y);
-      if (this.state === 'dead') {
-        const fall = Math.min(1, this.deadT / 0.5);
-        ctx.translate(this.x, this.y);
-        ctx.rotate(-this.deathDir * 1.35 * fall);
-        ctx.translate(-this.x, -this.y);
-      }
+      ctx.translate(-x, -y);
       if (this.state === 'roll') {
-        const rot = this.rollDir * this.rig.progress * Math.PI * 2;
-        ctx.translate(this.x, this.y - 30);
-        ctx.rotate(rot);
-        ctx.translate(-this.x, -(this.y - 30));
+        // roll rotation is baked into roll.png frames — no runtime rotate
+        // (the only transform needed: keep the spin about the body center,
+        //  which the sheet already does around the feet anchor)
+      }
+      if (this.state === 'dead') {
+        // dead.png already plays the collapse — no extra topple rotation
       }
       const alpha = this.invuln > 0 && this.state !== 'roll' ? (Math.floor(this.invuln * 14) % 2 === 0 ? 0.35 : 1) : 1;
-      spr.draw(ctx, 'rostam', this.rig.name, this.rig.progress, this.x, this.y, {
+      spr.draw(ctx, 'rostam', this.rig.name, this.rig.progress, x, y, {
         facing: this.facing,
         alpha,
         flash: this.flashT > 0 ? this.flashT / 0.13 : 0,
@@ -484,28 +552,28 @@ export class Player {
       }
     }
 
-    const hipX = this.x;
-    const hipY = this.y - ROSTAM_HIP_H + (this.mounted ? -26 : 0) + (this.yOff || 0);
+    const hipX = x;
+    const hipY = y - ROSTAM_HIP_H + (this.mounted ? -26 : 0) + (this.yOff || 0);
     const pose = this.rig.pose();
     const joints = ROSTAM_RIG.compute(pose, { x: hipX, y: hipY, flip: this.facing, scale: 1 });
 
     // squash & stretch about the feet + death topple rotation
     ctx.save();
     const sy = 1 + this.sq, sx = 1 - this.sq * 0.7;
-    ctx.translate(this.x, this.y);
+    ctx.translate(x, y);
     ctx.scale(sx, sy);
-    ctx.translate(-this.x, -this.y);
+    ctx.translate(-x, -y);
     if (this.state === 'dead') {
       const fall = Math.min(1, this.deadT / 0.5);
-      ctx.translate(this.x, this.y);
+      ctx.translate(x, y);
       ctx.rotate(-this.deathDir * 1.35 * fall);
-      ctx.translate(-this.x, -this.y);
+      ctx.translate(-x, -y);
     }
     if (this.state === 'roll') {
       const rot = this.rollDir * this.rig.progress * Math.PI * 2;
-      ctx.translate(this.x, this.y - 30);
+      ctx.translate(x, y - 30);
       ctx.rotate(rot);
-      ctx.translate(-this.x, -(this.y - 30));
+      ctx.translate(-x, -(y - 30));
     }
     // invulnerability blink
     const alpha = this.invuln > 0 && this.state !== 'roll' ? (Math.floor(this.invuln * 14) % 2 === 0 ? 0.35 : 1) : 1;
